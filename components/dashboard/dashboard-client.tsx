@@ -45,7 +45,6 @@ type ArticlesResponse = {
 type FormState = {
     id?: number;
     title: string;
-    slug: string;
     excerpt: string;
     content: string;
     categoryId: string;
@@ -58,7 +57,6 @@ function toFormState(article?: ArticleItem): FormState {
     if (!article) {
         return {
             title: "",
-            slug: "",
             excerpt: "",
             content: defaultContent,
             categoryId: "",
@@ -69,7 +67,6 @@ function toFormState(article?: ArticleItem): FormState {
     return {
         id: article.id,
         title: article.title,
-        slug: article.slug,
         excerpt: article.excerpt ?? "",
         content: article.content,
         categoryId: article.categoryId ? String(article.categoryId) : "",
@@ -85,8 +82,6 @@ export function DashboardClient() {
     const [query, setQuery] = useState("");
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [newTagName, setNewTagName] = useState("");
-    const [newCategoryName, setNewCategoryName] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -177,19 +172,13 @@ export function DashboardClient() {
 
         const payload = {
             title: form.title,
-            slug: form.slug,
             excerpt: form.excerpt,
             content: form.content,
             categoryId: form.categoryId ? Number(form.categoryId) : null,
             tagIds: form.tagIds,
         };
 
-        const validation = articleInputSchema.safeParse({
-            ...payload,
-            slug:
-                payload.slug ||
-                payload.title.toLowerCase().replace(/\s+/g, "-"),
-        });
+        const validation = articleInputSchema.safeParse(payload);
 
         if (!validation.success) {
             setError(
@@ -271,27 +260,6 @@ export function DashboardClient() {
         await refreshList();
     }
 
-    async function createTaxonomy(type: "tags" | "categories", name: string) {
-        if (!name.trim()) {
-            return;
-        }
-
-        const response = await fetch(`/api/${type}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ name: name.trim() }),
-        });
-
-        if (!response.ok) {
-            setError("Nepodarilo se ulozit taxonomii.");
-            return;
-        }
-
-        await loadTaxonomy();
-    }
-
     async function handleSearch(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         await loadArticles(1, query);
@@ -323,20 +291,6 @@ export function DashboardClient() {
                                         }
                                         required
                                         minLength={3}
-                                    />
-                                </Form.Group>
-
-                                <Form.Group className="mb-3" controlId="slug">
-                                    <Form.Label>Slug (volitelne)</Form.Label>
-                                    <Form.Control
-                                        value={form.slug}
-                                        onChange={(event) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                slug: event.target.value,
-                                            }))
-                                        }
-                                        placeholder="napr muj-super-clanek"
                                     />
                                 </Form.Group>
 
@@ -440,54 +394,6 @@ export function DashboardClient() {
                                         Reset
                                     </Button>
                                 </div>
-                            </Form>
-                        </Card.Body>
-                    </Card>
-
-                    <Card className="shadow-sm border-0 mt-4">
-                        <Card.Body>
-                            <h3 className="h5 mb-3">Sprava tagu a kategorii</h3>
-                            <Form
-                                className="d-flex gap-2 mb-3"
-                                onSubmit={async (event) => {
-                                    event.preventDefault();
-                                    await createTaxonomy(
-                                        "categories",
-                                        newCategoryName,
-                                    );
-                                    setNewCategoryName("");
-                                }}
-                            >
-                                <Form.Control
-                                    placeholder="Nova kategorie"
-                                    value={newCategoryName}
-                                    onChange={(event) =>
-                                        setNewCategoryName(event.target.value)
-                                    }
-                                />
-                                <Button type="submit" variant="outline-primary">
-                                    Pridat
-                                </Button>
-                            </Form>
-
-                            <Form
-                                className="d-flex gap-2"
-                                onSubmit={async (event) => {
-                                    event.preventDefault();
-                                    await createTaxonomy("tags", newTagName);
-                                    setNewTagName("");
-                                }}
-                            >
-                                <Form.Control
-                                    placeholder="Novy tag"
-                                    value={newTagName}
-                                    onChange={(event) =>
-                                        setNewTagName(event.target.value)
-                                    }
-                                />
-                                <Button type="submit" variant="outline-primary">
-                                    Pridat
-                                </Button>
                             </Form>
                         </Card.Body>
                     </Card>

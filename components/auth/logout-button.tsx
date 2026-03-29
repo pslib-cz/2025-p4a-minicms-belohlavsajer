@@ -6,7 +6,7 @@ export function LogoutButton() {
     return (
         <button
             type="button"
-            className="btn btn-outline-secondary btn-sm"
+            className="btn btn-outline-secondary"
             onClick={() => void signOut({ callbackUrl: "/login" })}
         >
             Odhlasit se

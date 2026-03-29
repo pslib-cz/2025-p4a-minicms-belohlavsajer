@@ -1,29 +1,50 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { authOptions } from "@/lib/auth";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const session = await getServerSession(authOptions);
+    const username = session?.user?.name ?? "Unknown user";
+
     return (
-        <>
-            <header className="border-bottom bg-white sticky-top">
-                <div className="container py-3 d-flex justify-content-between align-items-center">
+        <div className="dashboard-shell">
+            <aside className="dashboard-sidebar">
+                <div className="dashboard-sidebar-card">
                     <div>
-                        <Link
-                            href="/"
-                            className="fw-semibold text-decoration-none text-dark me-3"
-                        >
-                            Public web
-                        </Link>
-                        <span className="text-muted">Dashboard</span>
+                        <p className="text-uppercase text-muted small fw-semibold mb-1">
+                            Dashboard
+                        </p>
+                        <p className="text-dark fw-semibold mb-4">{username}</p>
+
+                        <nav className="nav flex-column gap-2 mb-4">
+                            <Link
+                                href="/dashboard"
+                                className="dashboard-nav-link text-decoration-none"
+                            >
+                                Články
+                            </Link>
+                            <Link
+                                href="/dashboard/taxonomy"
+                                className="dashboard-nav-link text-decoration-none"
+                            >
+                                Tagy a Kategorie
+                            </Link>
+                        </nav>
                     </div>
-                    <LogoutButton />
+
+                    <div className="mt-auto d-grid">
+                        <LogoutButton />
+                    </div>
                 </div>
-            </header>
-            {children}
-        </>
+            </aside>
+
+            <main className="dashboard-main">{children}</main>
+        </div>
     );
 }

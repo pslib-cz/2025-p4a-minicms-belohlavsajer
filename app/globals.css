@@ -46,3 +46,73 @@ body {
 .ProseMirror:focus {
     outline: none;
 }
+
+:root {
+    --app-header-height: 73px;
+    --dashboard-sidebar-width: clamp(250px, 22vw, 300px);
+}
+
+.dashboard-shell {
+    min-height: calc(100vh - var(--app-header-height));
+}
+
+.dashboard-sidebar {
+    position: fixed;
+    top: var(--app-header-height);
+    left: 0;
+    bottom: 0;
+    width: var(--dashboard-sidebar-width);
+    padding: 1rem;
+    z-index: 1020;
+}
+
+.dashboard-sidebar-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+    padding: 1rem;
+}
+
+.dashboard-nav-link {
+    display: block;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.7rem;
+    color: #3f3f46;
+    background: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+.dashboard-nav-link:hover {
+    border-color: var(--border-color);
+    color: #1f2937;
+    background: #ffffff;
+}
+
+.dashboard-main {
+    margin-left: var(--dashboard-sidebar-width);
+    padding: 1.5rem;
+    min-height: calc(100vh - var(--app-header-height));
+}
+
+@media (max-width: 767.98px) {
+    .dashboard-sidebar {
+        position: static;
+        width: 100%;
+        padding: 1rem;
+    }
+
+    .dashboard-sidebar-card {
+        height: auto;
+    }
+
+    .dashboard-main {
+        margin-left: 0;
+        padding-top: 0;
+    }
+}

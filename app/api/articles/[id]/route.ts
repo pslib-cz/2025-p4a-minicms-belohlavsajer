@@ -5,6 +5,32 @@ import { slugify } from "@/lib/utils";
 import { articleInputSchema } from "@/lib/validation";
 import { requireUserId } from "@/lib/api";
 
+async function generateUniqueArticleSlug(
+    title: string,
+    excludeArticleId: number,
+): Promise<string> {
+    const baseSlug = slugify(title) || "article";
+    let candidate = baseSlug;
+    let index = 2;
+
+    while (true) {
+        const existing = await prisma.article.findFirst({
+            where: {
+                slug: candidate,
+                NOT: { id: excludeArticleId },
+            },
+            select: { id: true },
+        });
+
+        if (!existing) {
+            return candidate;
+        }
+
+        candidate = `${baseSlug}-${index}`;
+        index += 1;
+    }
+}
+
 async function ensureOwnership(articleId: number, userId: number) {
     const article = await prisma.article.findUnique({
         where: { id: articleId },
@@ -77,7 +103,6 @@ export async function PUT(
     const body = await request.json();
     const parsed = articleInputSchema.safeParse({
         ...body,
-        slug: body.slug ? slugify(body.slug) : slugify(body.title),
         categoryId: body.categoryId ?? null,
         tagIds: body.tagIds ?? [],
     });
@@ -89,11 +114,13 @@ export async function PUT(
         );
     }
 
+    const slug = await generateUniqueArticleSlug(parsed.data.title, articleId);
+
     const updated = await prisma.article.update({
         where: { id: articleId },
         data: {
             title: parsed.data.title,
-            slug: parsed.data.slug,
+            slug,
             excerpt: parsed.data.excerpt || null,
             content: parsed.data.content,
             categoryId: parsed.data.categoryId,

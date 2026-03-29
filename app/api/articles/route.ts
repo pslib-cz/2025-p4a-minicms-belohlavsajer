@@ -8,6 +8,26 @@ import { requireUserId } from "@/lib/api";
 
 const PAGE_SIZE = 10;
 
+async function generateUniqueArticleSlug(title: string): Promise<string> {
+    const baseSlug = slugify(title) || "article";
+    let candidate = baseSlug;
+    let index = 2;
+
+    while (true) {
+        const existing = await prisma.article.findUnique({
+            where: { slug: candidate },
+            select: { id: true },
+        });
+
+        if (!existing) {
+            return candidate;
+        }
+
+        candidate = `${baseSlug}-${index}`;
+        index += 1;
+    }
+}
+
 export async function GET(request: NextRequest) {
     const userIdResult = await requireUserId();
     if (userIdResult instanceof NextResponse) {
@@ -61,7 +81,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = articleInputSchema.safeParse({
         ...body,
-        slug: body.slug ? slugify(body.slug) : slugify(body.title),
         categoryId: body.categoryId ?? null,
         tagIds: body.tagIds ?? [],
     });
@@ -73,10 +92,12 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    const slug = await generateUniqueArticleSlug(parsed.data.title);
+
     const created = await prisma.article.create({
         data: {
             title: parsed.data.title,
-            slug: parsed.data.slug,
+            slug,
             excerpt: parsed.data.excerpt || null,
             content: parsed.data.content,
             authorId: userIdResult,
