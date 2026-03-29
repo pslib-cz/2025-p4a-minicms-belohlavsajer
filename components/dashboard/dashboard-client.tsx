@@ -266,12 +266,12 @@ export function DashboardClient() {
     }
 
     return (
-        <Container className="py-4">
+        <Container className="ui-page">
             <Row className="g-4">
                 <Col lg={5}>
-                    <Card className="shadow-sm border-0">
+                    <Card className="ui-card">
                         <Card.Body>
-                            <h2 className="h4 mb-3">
+                            <h2 className="h4 mb-3 ui-title">
                                 {form.id ? "Editace clanku" : "Novy clanek"}
                             </h2>
                             {error ? (
@@ -400,10 +400,10 @@ export function DashboardClient() {
                 </Col>
 
                 <Col lg={7}>
-                    <Card className="shadow-sm border-0">
+                    <Card className="ui-card">
                         <Card.Body>
                             <div className="d-flex justify-content-between align-items-center mb-3">
-                                <h2 className="h4 m-0">Moje clanky</h2>
+                                <h2 className="h4 m-0 ui-title">Moje clanky</h2>
                                 {loading ? <Spinner size="sm" /> : null}
                             </div>
 

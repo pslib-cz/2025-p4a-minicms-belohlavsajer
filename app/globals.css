@@ -4,7 +4,13 @@
     --background: #f7f7f5;
     --foreground: #222222;
     --surface: #ffffff;
+    --surface-muted: #f6f5f2;
     --border-color: #e7e5e0;
+    --shadow-soft: 0 10px 35px rgba(0, 0, 0, 0.08);
+    --radius-md: 0.85rem;
+    --radius-lg: 1rem;
+    --app-header-height: 73px;
+    --dashboard-sidebar-width: clamp(250px, 22vw, 300px);
 }
 
 @theme inline {
@@ -18,6 +24,115 @@ body {
     background: radial-gradient(circle at top right, #f4f0e7, #f7f7f5 40%);
     color: var(--foreground);
     font-family: var(--font-geist-sans), "Segoe UI", Tahoma, sans-serif;
+    min-height: 100vh;
+}
+
+.app-header {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.app-brand {
+    color: #111827;
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+}
+
+.app-nav-link {
+    color: #52525b;
+    text-decoration: none;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.app-nav-link:hover,
+.app-nav-link:focus-visible {
+    color: #18181b;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--border-color);
+}
+
+.ui-page {
+    padding-block: 1.75rem;
+}
+
+.ui-hero {
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    background: linear-gradient(145deg, #faf8f2, #f4f2ea);
+    padding: 1.5rem;
+}
+
+.ui-eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #78716c;
+}
+
+.ui-title {
+    color: #111827;
+    letter-spacing: -0.02em;
+}
+
+.ui-subtitle {
+    color: #6b7280;
+}
+
+.ui-surface {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.ui-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.ui-card > .card-body {
+    padding: 1.25rem;
+}
+
+.form-control,
+.form-select {
+    border-color: var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.1);
+    border-color: #c7c9d1;
+}
+
+.btn {
+    border-radius: 0.75rem;
+    font-weight: 600;
+}
+
+.dashboard-nav-link {
+    display: block;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.7rem;
+    color: #3f3f46;
+    background: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+.dashboard-nav-link:hover {
+    border-color: var(--border-color);
+    color: #1f2937;
+    background: #ffffff;
 }
 
 .article-content {
@@ -38,18 +153,13 @@ body {
 .wysiwyg-editor {
     min-height: 220px;
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-md);
     padding: 0.75rem;
     background: var(--surface);
 }
 
 .ProseMirror:focus {
     outline: none;
-}
-
-:root {
-    --app-header-height: 73px;
-    --dashboard-sidebar-width: clamp(250px, 22vw, 300px);
 }
 
 .dashboard-shell {
@@ -71,27 +181,11 @@ body {
     display: flex;
     flex-direction: column;
     border: 1px solid var(--border-color);
-    border-radius: 1rem;
+    border-radius: var(--radius-lg);
     background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(6px);
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-soft);
     padding: 1rem;
-}
-
-.dashboard-nav-link {
-    display: block;
-    border: 1px solid transparent;
-    border-radius: 0.75rem;
-    padding: 0.55rem 0.7rem;
-    color: #3f3f46;
-    background: #f8f9fa;
-    transition: all 0.2s ease;
-}
-
-.dashboard-nav-link:hover {
-    border-color: var(--border-color);
-    color: #1f2937;
-    background: #ffffff;
 }
 
 .dashboard-main {
@@ -101,6 +195,14 @@ body {
 }
 
 @media (max-width: 767.98px) {
+    .ui-page {
+        padding-block: 1.25rem;
+    }
+
+    .ui-hero {
+        padding: 1.25rem;
+    }
+
     .dashboard-sidebar {
         position: static;
         width: 100%;

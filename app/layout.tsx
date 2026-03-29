@@ -44,25 +44,19 @@ export default function RootLayout({
             className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
         >
             <body className="min-h-full d-flex flex-column">
-                <header className="bg-white border-bottom">
+                <header className="app-header">
                     <nav className="container py-3 d-flex justify-content-between align-items-center">
                         <Link
                             href="/"
-                            className="text-decoration-none fw-bold text-dark fs-5"
+                            className="app-brand text-decoration-none"
                         >
                             Mini CMS
                         </Link>
                         <div className="d-flex gap-3">
-                            <Link
-                                href="/"
-                                className="text-decoration-none text-secondary"
-                            >
+                            <Link href="/" className="app-nav-link">
                                 Public
                             </Link>
-                            <Link
-                                href="/dashboard"
-                                className="text-decoration-none text-secondary"
-                            >
+                            <Link href="/dashboard" className="app-nav-link">
                                 Dashboard
                             </Link>
                         </div>

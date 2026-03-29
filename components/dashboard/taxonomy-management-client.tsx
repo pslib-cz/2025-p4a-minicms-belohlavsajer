@@ -116,7 +116,9 @@ export function TaxonomyManagementClient() {
     return (
         <>
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h1 className="h3 m-0">Tag &amp; Category Management</h1>
+                <h1 className="h3 m-0 ui-title">
+                    Tag &amp; Category Management
+                </h1>
                 {loading ? <Spinner size="sm" /> : null}
             </div>
 
@@ -124,10 +126,10 @@ export function TaxonomyManagementClient() {
 
             <Row className="g-4">
                 <Col lg={6}>
-                    <Card className="shadow-sm border-0 h-100">
+                    <Card className="ui-card h-100">
                         <Card.Body>
                             <div className="d-flex justify-content-between align-items-center mb-3">
-                                <h2 className="h5 m-0">Kategorie</h2>
+                                <h2 className="h5 m-0 ui-title">Kategorie</h2>
                                 <Badge bg="secondary">
                                     {categories.length}
                                 </Badge>
@@ -168,10 +170,10 @@ export function TaxonomyManagementClient() {
                 </Col>
 
                 <Col lg={6}>
-                    <Card className="shadow-sm border-0 h-100">
+                    <Card className="ui-card h-100">
                         <Card.Body>
                             <div className="d-flex justify-content-between align-items-center mb-3">
-                                <h2 className="h5 m-0">Tagy</h2>
+                                <h2 className="h5 m-0 ui-title">Tagy</h2>
                                 <Badge bg="secondary">{tags.length}</Badge>
                             </div>
 

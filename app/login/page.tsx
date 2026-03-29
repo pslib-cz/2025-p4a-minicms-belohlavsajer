@@ -22,7 +22,7 @@ export default async function LoginPage() {
     }
 
     return (
-        <main className="container py-5" style={{ maxWidth: "540px" }}>
+        <main className="container ui-page" style={{ maxWidth: "540px" }}>
             <LoginForm />
         </main>
     );

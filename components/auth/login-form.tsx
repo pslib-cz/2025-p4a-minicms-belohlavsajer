@@ -39,9 +39,9 @@ export function LoginForm() {
     }
 
     return (
-        <Card className="shadow-sm border-0">
+        <Card className="ui-card">
             <Card.Body className="p-4 p-md-5">
-                <h1 className="h3 mb-4">Prihlaseni do dashboardu</h1>
+                <h1 className="h3 mb-4 ui-title">Prihlaseni do dashboardu</h1>
 
                 {error ? <Alert variant="danger">{error}</Alert> : null}
 
@@ -72,7 +72,12 @@ export function LoginForm() {
                         />
                     </Form.Group>
 
-                    <Button type="submit" className="w-100" disabled={loading}>
+                    <Button
+                        type="submit"
+                        variant="dark"
+                        className="w-100"
+                        disabled={loading}
+                    >
                         {loading ? (
                             <>
                                 <Spinner size="sm" className="me-2" />

@@ -78,16 +78,14 @@ export default async function Home({ searchParams }: Props) {
     });
 
     return (
-        <main className="container py-4 py-md-5">
-            <section className="rounded-4 p-4 p-md-5 bg-light border mb-4 d-flex align-items-center justify-content-between gap-3 flex-wrap">
+        <main className="container ui-page">
+            <section className="ui-hero mb-4 d-flex align-items-center justify-content-between gap-3 flex-wrap">
                 <div>
-                    <p className="text-uppercase small text-secondary mb-2">
-                        Verejna cast
-                    </p>
-                    <h1 className="display-6 fw-semibold mb-2">
+                    <p className="ui-eyebrow mb-2">Verejna cast</p>
+                    <h1 className="display-6 fw-semibold mb-2 ui-title">
                         Publikovany obsah
                     </h1>
-                    <p className="text-secondary m-0">
+                    <p className="ui-subtitle m-0">
                         Server Components + SEO + filtrovani a strankovani
                     </p>
                 </div>
@@ -100,7 +98,7 @@ export default async function Home({ searchParams }: Props) {
                 />
             </section>
 
-            <section className="card border-0 shadow-sm mb-4">
+            <section className="card ui-card mb-4">
                 <div className="card-body">
                     <form className="row g-3" method="GET">
                         <div className="col-md-5">
@@ -177,9 +175,9 @@ export default async function Home({ searchParams }: Props) {
                 ) : (
                     items.map((article) => (
                         <div className="col-md-6 col-xl-4" key={article.id}>
-                            <article className="card h-100 border-0 shadow-sm">
+                            <article className="card h-100 ui-card">
                                 <div className="card-body d-flex flex-column">
-                                    <p className="small text-uppercase text-muted mb-2">
+                                    <p className="ui-eyebrow mb-2">
                                         {article.category?.name ??
                                             "Bez kategorie"}
                                     </p>

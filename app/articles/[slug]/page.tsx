@@ -46,16 +46,17 @@ export default async function ArticleDetailPage({ params }: Props) {
     }
 
     return (
-        <main className="container py-5">
-            <article className="mx-auto" style={{ maxWidth: "840px" }}>
+        <main className="container ui-page">
+            <article
+                className="mx-auto ui-surface p-4 p-md-5"
+                style={{ maxWidth: "840px" }}
+            >
                 <header className="mb-4">
-                    <p className="text-uppercase text-muted small mb-2">
-                        Publikovano
-                    </p>
-                    <h1 className="display-5 fw-semibold mb-3">
+                    <p className="ui-eyebrow mb-2">Publikovano</p>
+                    <h1 className="display-5 fw-semibold mb-3 ui-title">
                         {article.title}
                     </h1>
-                    <p className="lead text-secondary mb-2">
+                    <p className="lead ui-subtitle mb-2">
                         {article.excerpt || buildExcerpt(article.content, 220)}
                     </p>
                     <div className="small text-muted">
