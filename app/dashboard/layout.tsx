@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { getServerSession } from "next-auth";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { DashboardSidebarNav } from "@/components/dashboard/dashboard-sidebar-nav";
 import { authOptions } from "@/lib/auth";
 
 export default async function DashboardLayout({
@@ -22,20 +22,7 @@ export default async function DashboardLayout({
                         </p>
                         <p className="text-dark fw-semibold mb-4">{username}</p>
 
-                        <nav className="nav flex-column gap-2 mb-4">
-                            <Link
-                                href="/dashboard"
-                                className="dashboard-nav-link text-decoration-none"
-                            >
-                                Články
-                            </Link>
-                            <Link
-                                href="/dashboard/taxonomy"
-                                className="dashboard-nav-link text-decoration-none"
-                            >
-                                Tagy a Kategorie
-                            </Link>
-                        </nav>
+                        <DashboardSidebarNav />
                     </div>
 
                     <div className="mt-auto d-grid">

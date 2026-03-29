@@ -147,7 +147,11 @@ export function TaxonomyManagementClient() {
                                     placeholder="Nova kategorie"
                                     maxLength={60}
                                 />
-                                <Button type="submit" disabled={saving}>
+                                <Button
+                                    type="submit"
+                                    variant="dark"
+                                    disabled={saving}
+                                >
                                     Pridat
                                 </Button>
                             </Form>
@@ -189,7 +193,11 @@ export function TaxonomyManagementClient() {
                                     placeholder="Novy tag"
                                     maxLength={60}
                                 />
-                                <Button type="submit" disabled={saving}>
+                                <Button
+                                    type="submit"
+                                    variant="dark"
+                                    disabled={saving}
+                                >
                                     Pridat
                                 </Button>
                             </Form>

@@ -51,7 +51,7 @@ type FormState = {
     tagIds: number[];
 };
 
-const defaultContent = "<p>Zacnete psat obsah clanku...</p>";
+const defaultContent = "";
 
 function toFormState(article?: ArticleItem): FormState {
     if (!article) {
@@ -383,12 +383,16 @@ export function DashboardClient() {
                                 </Form.Group>
 
                                 <div className="d-flex gap-2">
-                                    <Button type="submit" disabled={saving}>
+                                    <Button
+                                        type="submit"
+                                        variant="dark"
+                                        disabled={saving}
+                                    >
                                         {saving ? "Ukladam..." : submitLabel}
                                     </Button>
                                     <Button
                                         type="button"
-                                        variant="outline-secondary"
+                                        variant="outline-dark"
                                         onClick={() => setForm(toFormState())}
                                     >
                                         Reset
@@ -418,10 +422,7 @@ export function DashboardClient() {
                                     }
                                     placeholder="Hledat podle titulku nebo textu"
                                 />
-                                <Button
-                                    type="submit"
-                                    variant="outline-secondary"
-                                >
+                                <Button type="submit" variant="outline-dark">
                                     Hledat
                                 </Button>
                             </Form>
@@ -488,7 +489,7 @@ export function DashboardClient() {
                                                     <div className="d-flex gap-2 flex-wrap">
                                                         <Button
                                                             size="sm"
-                                                            variant="outline-primary"
+                                                            variant="outline-dark"
                                                             onClick={() =>
                                                                 setForm(
                                                                     toFormState(
@@ -501,7 +502,7 @@ export function DashboardClient() {
                                                         </Button>
                                                         <Button
                                                             size="sm"
-                                                            variant="outline-warning"
+                                                            variant="outline-dark"
                                                             onClick={() =>
                                                                 void toggleStatus(
                                                                     article,
@@ -515,7 +516,7 @@ export function DashboardClient() {
                                                         </Button>
                                                         <Button
                                                             size="sm"
-                                                            variant="outline-danger"
+                                                            variant="outline-dark"
                                                             onClick={() =>
                                                                 void removeArticle(
                                                                     article.id,
@@ -532,7 +533,7 @@ export function DashboardClient() {
                                 </tbody>
                             </Table>
 
-                            <Pagination className="mb-0">
+                            <Pagination className="mb-0 dashboard-pagination">
                                 <Pagination.Prev
                                     disabled={page <= 1}
                                     onClick={() =>

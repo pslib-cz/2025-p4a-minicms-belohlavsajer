@@ -210,7 +210,7 @@ export default async function Home({ searchParams }: Props) {
             >
                 <Link
                     href={`/?${prevParams}`}
-                    className={`btn btn-outline-secondary ${page <= 1 ? "disabled" : ""}`}
+                    className={`btn btn-outline-dark ${page <= 1 ? "disabled" : ""}`}
                     aria-disabled={page <= 1}
                 >
                     Predchozi
@@ -218,7 +218,7 @@ export default async function Home({ searchParams }: Props) {
                 <span className="btn btn-light border">{`${page} / ${totalPages}`}</span>
                 <Link
                     href={`/?${nextParams}`}
-                    className={`btn btn-outline-secondary ${page >= totalPages ? "disabled" : ""}`}
+                    className={`btn btn-outline-dark ${page >= totalPages ? "disabled" : ""}`}
                     aria-disabled={page >= totalPages}
                 >
                     Dalsi
