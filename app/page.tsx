@@ -1,65 +1,231 @@
+import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+import {
+    buildExcerpt,
+    getPublicArticles,
+    getPublicFilters,
+} from "@/lib/public-content";
+
+type SearchParams = {
+    q?: string;
+    tag?: string;
+    category?: string;
+    page?: string;
+};
+
+type Props = {
+    searchParams: Promise<SearchParams>;
+};
+
+function buildQueryString(params: SearchParams) {
+    const query = new URLSearchParams();
+
+    if (params.q) {
+        query.set("q", params.q);
+    }
+    if (params.tag) {
+        query.set("tag", params.tag);
+    }
+    if (params.category) {
+        query.set("category", params.category);
+    }
+    if (params.page) {
+        query.set("page", params.page);
+    }
+
+    return query.toString();
+}
+
+export async function generateMetadata({
+    searchParams,
+}: Props): Promise<Metadata> {
+    const filters = await searchParams;
+    const description = filters.q
+        ? `Vysledky hledani pro: ${filters.q}`
+        : "Seznam publikovanych clanku";
+
+    const canonicalQuery = buildQueryString(filters);
+
+    return {
+        title: filters.q ? `Hledani: ${filters.q}` : "Publikovany obsah",
+        description,
+        alternates: {
+            canonical: canonicalQuery ? `/?${canonicalQuery}` : "/",
+        },
+        openGraph: {
+            title: filters.q ? `Hledani: ${filters.q}` : "Publikovany obsah",
+            description,
+            url: canonicalQuery ? `/?${canonicalQuery}` : "/",
+            type: "website",
+        },
+    };
+}
+
+export default async function Home({ searchParams }: Props) {
+    const filters = await searchParams;
+    const [{ items, page, totalPages }, { categories, tags }] =
+        await Promise.all([getPublicArticles(filters), getPublicFilters()]);
+
+    const prevParams = buildQueryString({
+        ...filters,
+        page: String(Math.max(1, page - 1)),
+    });
+    const nextParams = buildQueryString({
+        ...filters,
+        page: String(Math.min(totalPages, page + 1)),
+    });
+
+    return (
+        <main className="container py-4 py-md-5">
+            <section className="rounded-4 p-4 p-md-5 bg-light border mb-4 d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                <div>
+                    <p className="text-uppercase small text-secondary mb-2">
+                        Verejna cast
+                    </p>
+                    <h1 className="display-6 fw-semibold mb-2">
+                        Publikovany obsah
+                    </h1>
+                    <p className="text-secondary m-0">
+                        Server Components + SEO + filtrovani a strankovani
+                    </p>
+                </div>
+                <Image
+                    src="/next.svg"
+                    alt="Next.js"
+                    width={120}
+                    height={24}
+                    priority
+                />
+            </section>
+
+            <section className="card border-0 shadow-sm mb-4">
+                <div className="card-body">
+                    <form className="row g-3" method="GET">
+                        <div className="col-md-5">
+                            <label htmlFor="q" className="form-label">
+                                Vyhledavani
+                            </label>
+                            <input
+                                id="q"
+                                type="text"
+                                name="q"
+                                className="form-control"
+                                defaultValue={filters.q ?? ""}
+                                placeholder="Hledat podle title/textu"
+                            />
+                        </div>
+                        <div className="col-md-3">
+                            <label htmlFor="category" className="form-label">
+                                Kategorie
+                            </label>
+                            <select
+                                id="category"
+                                name="category"
+                                className="form-select"
+                                defaultValue={filters.category ?? ""}
+                            >
+                                <option value="">Vsechny</option>
+                                {categories.map((category) => (
+                                    <option
+                                        key={category.id}
+                                        value={category.name}
+                                    >
+                                        {category.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="col-md-3">
+                            <label htmlFor="tag" className="form-label">
+                                Tag
+                            </label>
+                            <select
+                                id="tag"
+                                name="tag"
+                                className="form-select"
+                                defaultValue={filters.tag ?? ""}
+                            >
+                                <option value="">Vsechny</option>
+                                {tags.map((tag) => (
+                                    <option key={tag.id} value={tag.name}>
+                                        {tag.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="col-md-1 d-flex align-items-end">
+                            <button
+                                type="submit"
+                                className="btn btn-dark w-100"
+                            >
+                                Go
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section className="row g-4">
+                {items.length === 0 ? (
+                    <div className="col-12">
+                        <div className="alert alert-secondary mb-0">
+                            Nebyly nalezeny zadne publikovane clanky.
+                        </div>
+                    </div>
+                ) : (
+                    items.map((article) => (
+                        <div className="col-md-6 col-xl-4" key={article.id}>
+                            <article className="card h-100 border-0 shadow-sm">
+                                <div className="card-body d-flex flex-column">
+                                    <p className="small text-uppercase text-muted mb-2">
+                                        {article.category?.name ??
+                                            "Bez kategorie"}
+                                    </p>
+                                    <h2 className="h5">{article.title}</h2>
+                                    <p className="text-secondary grow">
+                                        {article.excerpt ||
+                                            buildExcerpt(article.content, 120)}
+                                    </p>
+                                    <p className="small text-muted mb-3">
+                                        {article.tags
+                                            .map((tag) => tag.name)
+                                            .join(", ") || "Bez tagu"}
+                                    </p>
+                                    <Link
+                                        href={`/articles/${article.slug}`}
+                                        className="btn btn-outline-dark btn-sm"
+                                    >
+                                        Otevrit detail
+                                    </Link>
+                                </div>
+                            </article>
+                        </div>
+                    ))
+                )}
+            </section>
+
+            <nav
+                className="d-flex justify-content-center gap-2 mt-4"
+                aria-label="Pagination"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+                <Link
+                    href={`/?${prevParams}`}
+                    className={`btn btn-outline-secondary ${page <= 1 ? "disabled" : ""}`}
+                    aria-disabled={page <= 1}
+                >
+                    Predchozi
+                </Link>
+                <span className="btn btn-light border">{`${page} / ${totalPages}`}</span>
+                <Link
+                    href={`/?${nextParams}`}
+                    className={`btn btn-outline-secondary ${page >= totalPages ? "disabled" : ""}`}
+                    aria-disabled={page >= totalPages}
+                >
+                    Dalsi
+                </Link>
+            </nav>
+        </main>
+    );
 }
