@@ -35,8 +35,11 @@ Demo účet po seedu:
 - `NEXTAUTH_URL`
 - `NEXTAUTH_SECRET`
 - `NEXT_PUBLIC_SITE_URL`
+- `BLOB_READ_WRITE_TOKEN`
 - `NEXT_PUBLIC_GTM_ID`
 - `NEXT_PUBLIC_CLARITY_PROJECT_ID`
+
+Uploads obrázků do guide editoru a hero coveru na Vercelu vyžadují `BLOB_READ_WRITE_TOKEN` pro Vercel Blob. Bez něj bude `/api/uploads/guides` vracet chybu konfigurace.
 
 ## CookieConsent v3
 

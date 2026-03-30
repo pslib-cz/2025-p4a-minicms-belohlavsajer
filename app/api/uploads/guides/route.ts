@@ -1,3 +1,4 @@
+import { put } from "@vercel/blob";
 import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
@@ -22,6 +23,15 @@ function buildFileName(file: File, extension: string) {
     const originalBaseName = file.name.replace(/\.[^.]+$/, "");
     const safeBaseName = slugify(originalBaseName) || "guide-image";
     return `${safeBaseName}-${Date.now()}-${randomUUID().slice(0, 8)}.${extension}`;
+}
+
+function isRunningOnVercel() {
+    return process.env.VERCEL === "1";
+}
+
+function getBlobToken() {
+    const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+    return token ? token : null;
 }
 
 export async function POST(request: Request) {
@@ -78,23 +88,56 @@ export async function POST(request: Request) {
     }
 
     const fileName = buildFileName(fileEntry, extension);
-    const uploadDirectory = path.join(
-        process.cwd(),
-        "public",
-        "uploads",
-        "guides",
-    );
-    const targetPath = path.join(uploadDirectory, fileName);
-    const fileBuffer = Buffer.from(await fileEntry.arrayBuffer());
+    const blobToken = getBlobToken();
+    const shouldUseBlobStorage = isRunningOnVercel() || Boolean(blobToken);
+    let imageSource: string;
 
-    try {
-        await mkdir(uploadDirectory, { recursive: true });
-        await writeFile(targetPath, fileBuffer);
-    } catch {
-        return NextResponse.json(
-            { error: "Image upload failed on server filesystem" },
-            { status: 500 },
+    if (shouldUseBlobStorage) {
+        if (!blobToken) {
+            return NextResponse.json(
+                {
+                    error: "Vercel Blob storage is not configured. Add BLOB_READ_WRITE_TOKEN in project environment variables.",
+                },
+                { status: 503 },
+            );
+        }
+
+        try {
+            const blob = await put(`guides/${fileName}`, fileEntry, {
+                access: "public",
+                addRandomSuffix: false,
+                contentType: fileEntry.type,
+                token: blobToken,
+            });
+
+            imageSource = blob.url;
+        } catch {
+            return NextResponse.json(
+                { error: "Image upload failed in Vercel Blob storage" },
+                { status: 500 },
+            );
+        }
+    } else {
+        const uploadDirectory = path.join(
+            process.cwd(),
+            "public",
+            "uploads",
+            "guides",
         );
+        const targetPath = path.join(uploadDirectory, fileName);
+        const fileBuffer = Buffer.from(await fileEntry.arrayBuffer());
+
+        try {
+            await mkdir(uploadDirectory, { recursive: true });
+            await writeFile(targetPath, fileBuffer);
+        } catch {
+            return NextResponse.json(
+                { error: "Image upload failed on server filesystem" },
+                { status: 500 },
+            );
+        }
+
+        imageSource = `/uploads/guides/${fileName}`;
     }
 
     const alt =
@@ -103,7 +146,7 @@ export async function POST(request: Request) {
             : null;
 
     return NextResponse.json({
-        src: `/uploads/guides/${fileName}`,
+        src: imageSource,
         alt,
         mimeType: fileEntry.type,
         size: fileEntry.size,
