@@ -13,6 +13,8 @@ import {
     JsonLdScript,
 } from "@/lib/seo/structured-data";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: "Minecraft hub pro guidey a servery",
     description:
