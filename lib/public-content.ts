@@ -1,6 +1,10 @@
 import { Prisma } from "@prisma/client";
 
-import { prisma } from "@/lib/prisma";
+import {
+    isPrismaConnectionError,
+    prisma,
+    withPrismaRetry,
+} from "@/lib/prisma";
 import { parsePage, stripHtml } from "@/lib/utils";
 
 export const publicGuideInclude = Prisma.validator<Prisma.ArticleInclude>()({
@@ -27,66 +31,104 @@ const publishedOrderBy: Prisma.ArticleOrderByWithRelationInput[] = [
     { updatedAt: "desc" },
 ];
 
-export async function getPublicFilters() {
-    const [categories, tags] = await Promise.all([
-        prisma.category.findMany({ orderBy: { name: "asc" } }),
-        prisma.tag.findMany({ orderBy: { name: "asc" } }),
-    ]);
+async function withPublicContentFallback<T>(
+    label: string,
+    operation: () => Promise<T>,
+    fallback: T,
+) {
+    try {
+        return await withPrismaRetry(operation, { label });
+    } catch (error) {
+        if (!isPrismaConnectionError(error)) {
+            throw error;
+        }
 
-    return { categories, tags };
+        console.error(
+            `${label} failed because the database is temporarily unreachable. Falling back to empty public content.`,
+            error,
+        );
+
+        return fallback;
+    }
+}
+
+export async function getPublicFilters() {
+    return withPublicContentFallback(
+        "getPublicFilters",
+        async () => {
+            const [categories, tags] = await Promise.all([
+                prisma.category.findMany({ orderBy: { name: "asc" } }),
+                prisma.tag.findMany({ orderBy: { name: "asc" } }),
+            ]);
+
+            return { categories, tags };
+        },
+        { categories: [], tags: [] },
+    );
 }
 
 export async function getHomepageSections() {
-    const [featuredGuides, serverPicks, starterGuides, buildSpotlights] =
-        await Promise.all([
-            prisma.article.findMany({
-                where: { status: "PUBLISHED" },
-                include: publicGuideInclude,
-                orderBy: publishedOrderBy,
-                take: 3,
-            }),
-            prisma.article.findMany({
-                where: {
-                    status: "PUBLISHED",
-                    category: { name: "Server" },
-                },
-                include: publicGuideInclude,
-                orderBy: publishedOrderBy,
-                take: 3,
-            }),
-            prisma.article.findMany({
-                where: {
-                    status: "PUBLISHED",
-                    OR: [
-                        { category: { name: "Tutorial" } },
-                        { tags: { some: { name: "Beginner" } } },
-                    ],
-                },
-                include: publicGuideInclude,
-                orderBy: publishedOrderBy,
-                take: 3,
-            }),
-            prisma.article.findMany({
-                where: {
-                    status: "PUBLISHED",
-                    category: {
-                        name: {
-                            in: ["Build Guide", "Farm Guide"],
+    return withPublicContentFallback(
+        "getHomepageSections",
+        async () => {
+            const [featuredGuides, serverPicks, starterGuides, buildSpotlights] =
+                await Promise.all([
+                    prisma.article.findMany({
+                        where: { status: "PUBLISHED" },
+                        include: publicGuideInclude,
+                        orderBy: publishedOrderBy,
+                        take: 3,
+                    }),
+                    prisma.article.findMany({
+                        where: {
+                            status: "PUBLISHED",
+                            category: { name: "Server" },
                         },
-                    },
-                },
-                include: publicGuideInclude,
-                orderBy: publishedOrderBy,
-                take: 3,
-            }),
-        ]);
+                        include: publicGuideInclude,
+                        orderBy: publishedOrderBy,
+                        take: 3,
+                    }),
+                    prisma.article.findMany({
+                        where: {
+                            status: "PUBLISHED",
+                            OR: [
+                                { category: { name: "Tutorial" } },
+                                { tags: { some: { name: "Beginner" } } },
+                            ],
+                        },
+                        include: publicGuideInclude,
+                        orderBy: publishedOrderBy,
+                        take: 3,
+                    }),
+                    prisma.article.findMany({
+                        where: {
+                            status: "PUBLISHED",
+                            category: {
+                                name: {
+                                    in: ["Build Guide", "Farm Guide"],
+                                },
+                            },
+                        },
+                        include: publicGuideInclude,
+                        orderBy: publishedOrderBy,
+                        take: 3,
+                    }),
+                ]);
 
-    return {
-        featuredGuides,
-        serverPicks,
-        starterGuides,
-        buildSpotlights,
-    };
+            return {
+                featuredGuides,
+                serverPicks,
+                starterGuides,
+                buildSpotlights,
+            };
+        },
+        {
+            featuredGuides: [],
+            serverPicks: [],
+            starterGuides: [],
+            buildSpotlights: [],
+        },
+    );
 }
 
 export async function getPublicArticles(params: PublicListParams) {
@@ -109,34 +151,51 @@ export async function getPublicArticles(params: PublicListParams) {
         ...(category ? { category: { name: category } } : {}),
     };
 
-    const [items, total] = await Promise.all([
-        prisma.article.findMany({
-            where,
-            include: publicGuideInclude,
-            orderBy: publishedOrderBy,
-            skip: (page - 1) * PAGE_SIZE,
-            take: PAGE_SIZE,
-        }),
-        prisma.article.count({ where }),
-    ]);
+    return withPublicContentFallback(
+        "getPublicArticles",
+        async () => {
+            const [items, total] = await Promise.all([
+                prisma.article.findMany({
+                    where,
+                    include: publicGuideInclude,
+                    orderBy: publishedOrderBy,
+                    skip: (page - 1) * PAGE_SIZE,
+                    take: PAGE_SIZE,
+                }),
+                prisma.article.count({ where }),
+            ]);
 
-    return {
-        items,
-        page,
-        pageSize: PAGE_SIZE,
-        total,
-        totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
-    };
+            return {
+                items,
+                page,
+                pageSize: PAGE_SIZE,
+                total,
+                totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+            };
+        },
+        {
+            items: [],
+            page,
+            pageSize: PAGE_SIZE,
+            total: 0,
+            totalPages: 1,
+        },
+    );
 }
 
 export async function getPublishedArticleBySlug(slug: string) {
-    return prisma.article.findFirst({
-        where: {
-            slug,
-            status: "PUBLISHED",
-        },
-        include: publicGuideInclude,
-    });
+    return withPublicContentFallback(
+        "getPublishedArticleBySlug",
+        () =>
+            prisma.article.findFirst({
+                where: {
+                    slug,
+                    status: "PUBLISHED",
+                },
+                include: publicGuideInclude,
+            }),
+        null,
+    );
 }
 
 export async function getRelatedPublishedArticles(article: PublicGuide) {
@@ -156,16 +215,21 @@ export async function getRelatedPublishedArticles(article: PublicGuide) {
         });
     }
 
-    return prisma.article.findMany({
-        where: {
-            status: "PUBLISHED",
-            NOT: { id: article.id },
-            ...(relatedClauses.length ? { OR: relatedClauses } : {}),
-        },
-        include: publicGuideInclude,
-        orderBy: publishedOrderBy,
-        take: 3,
-    });
+    return withPublicContentFallback(
+        "getRelatedPublishedArticles",
+        () =>
+            prisma.article.findMany({
+                where: {
+                    status: "PUBLISHED",
+                    NOT: { id: article.id },
+                    ...(relatedClauses.length ? { OR: relatedClauses } : {}),
+                },
+                include: publicGuideInclude,
+                orderBy: publishedOrderBy,
+                take: 3,
+            }),
+        [],
+    );
 }
 
 export function buildExcerpt(htmlContent: string, maxLength = 150) {
