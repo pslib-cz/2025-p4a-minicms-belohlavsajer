@@ -25,7 +25,22 @@ export function TaxonomyManagementClient() {
     const [newTagName, setNewTagName] = useState("");
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [deletingKey, setDeletingKey] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    async function getErrorMessage(response: Response, fallback: string) {
+        try {
+            const payload = (await response.json()) as { error?: string };
+
+            if (payload.error) {
+                return payload.error;
+            }
+        } catch {
+            // Ignore parsing errors and use fallback.
+        }
+
+        return fallback;
+    }
 
     async function loadTaxonomy() {
         setLoading(true);
@@ -82,7 +97,12 @@ export function TaxonomyManagementClient() {
             });
 
             if (!response.ok) {
-                throw new Error("Nepodarilo se ulozit taxonomii.");
+                throw new Error(
+                    await getErrorMessage(
+                        response,
+                        "Nepodarilo se ulozit taxonomii.",
+                    ),
+                );
             }
 
             if (type === "categories") {
@@ -103,6 +123,36 @@ export function TaxonomyManagementClient() {
         }
     }
 
+    async function deleteTaxonomy(type: "categories" | "tags", id: number) {
+        setDeletingKey(`${type}-${id}`);
+        setError(null);
+
+        try {
+            const response = await fetch(`/api/${type}/${id}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                throw new Error(
+                    await getErrorMessage(
+                        response,
+                        "Nepodarilo se smazat taxonomii.",
+                    ),
+                );
+            }
+
+            await loadTaxonomy();
+        } catch (deleteError) {
+            setError(
+                deleteError instanceof Error
+                    ? deleteError.message
+                    : "Nepodarilo se smazat taxonomii.",
+            );
+        } finally {
+            setDeletingKey(null);
+        }
+    }
+
     async function handleCreateCategory(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         await createTaxonomy("categories", newCategoryName);
@@ -111,6 +161,30 @@ export function TaxonomyManagementClient() {
     async function handleCreateTag(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         await createTaxonomy("tags", newTagName);
+    }
+
+    async function handleDeleteCategory(category: TaxonomyItem) {
+        const shouldDelete = window.confirm(
+            `Opravdu smazat kategorii "${category.name}"?`,
+        );
+
+        if (!shouldDelete) {
+            return;
+        }
+
+        await deleteTaxonomy("categories", category.id);
+    }
+
+    async function handleDeleteTag(tag: TaxonomyItem) {
+        const shouldDelete = window.confirm(
+            `Opravdu smazat tag "${tag.name}"?`,
+        );
+
+        if (!shouldDelete) {
+            return;
+        }
+
+        await deleteTaxonomy("tags", tag.id);
     }
 
     return (
@@ -150,7 +224,7 @@ export function TaxonomyManagementClient() {
                                 <Button
                                     type="submit"
                                     variant="dark"
-                                    disabled={saving}
+                                    disabled={saving || deletingKey !== null}
                                 >
                                     Pridat
                                 </Button>
@@ -163,8 +237,38 @@ export function TaxonomyManagementClient() {
                                     </ListGroup.Item>
                                 ) : (
                                     categories.map((category) => (
-                                        <ListGroup.Item key={category.id}>
-                                            {category.name}
+                                        <ListGroup.Item
+                                            key={category.id}
+                                            className="d-flex justify-content-between align-items-center gap-2"
+                                        >
+                                            <span>{category.name}</span>
+                                            <Button
+                                                type="button"
+                                                variant="outline-danger"
+                                                size="sm"
+                                                onClick={() =>
+                                                    void handleDeleteCategory(
+                                                        category,
+                                                    )
+                                                }
+                                                disabled={
+                                                    saving ||
+                                                    deletingKey !== null
+                                                }
+                                            >
+                                                {deletingKey ===
+                                                `categories-${category.id}` ? (
+                                                    <>
+                                                        <Spinner
+                                                            size="sm"
+                                                            className="me-2"
+                                                        />
+                                                        Mazu...
+                                                    </>
+                                                ) : (
+                                                    "Smazat"
+                                                )}
+                                            </Button>
                                         </ListGroup.Item>
                                     ))
                                 )}
@@ -196,7 +300,7 @@ export function TaxonomyManagementClient() {
                                 <Button
                                     type="submit"
                                     variant="dark"
-                                    disabled={saving}
+                                    disabled={saving || deletingKey !== null}
                                 >
                                     Pridat
                                 </Button>
@@ -209,8 +313,36 @@ export function TaxonomyManagementClient() {
                                     </ListGroup.Item>
                                 ) : (
                                     tags.map((tag) => (
-                                        <ListGroup.Item key={tag.id}>
-                                            {tag.name}
+                                        <ListGroup.Item
+                                            key={tag.id}
+                                            className="d-flex justify-content-between align-items-center gap-2"
+                                        >
+                                            <span>{tag.name}</span>
+                                            <Button
+                                                type="button"
+                                                variant="outline-danger"
+                                                size="sm"
+                                                onClick={() =>
+                                                    void handleDeleteTag(tag)
+                                                }
+                                                disabled={
+                                                    saving ||
+                                                    deletingKey !== null
+                                                }
+                                            >
+                                                {deletingKey ===
+                                                `tags-${tag.id}` ? (
+                                                    <>
+                                                        <Spinner
+                                                            size="sm"
+                                                            className="me-2"
+                                                        />
+                                                        Mazu...
+                                                    </>
+                                                ) : (
+                                                    "Smazat"
+                                                )}
+                                            </Button>
                                         </ListGroup.Item>
                                     ))
                                 )}
