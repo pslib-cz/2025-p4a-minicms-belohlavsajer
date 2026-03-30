@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Form, Spinner } from "react-bootstrap";
 
 import { FormField } from "@/components/ui/form-field";
@@ -10,20 +10,21 @@ import { MinecraftButton } from "@/components/ui/minecraft-button";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatusAlert } from "@/components/ui/status-alert";
 
-export function LoginForm() {
+type LoginFormProps = {
+    callbackUrl: string;
+};
+
+export function LoginForm({ callbackUrl }: LoginFormProps) {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const searchParams = useSearchParams();
 
     async function onSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError(null);
         setLoading(true);
-
-        const callbackUrl = searchParams.get("next") || "/dashboard";
 
         const result = await signIn("credentials", {
             username,

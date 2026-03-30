@@ -1,14 +1,13 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
 import { TaxonomyManagementClient } from "@/components/dashboard/taxonomy-management-client";
-import { authOptions } from "@/lib/auth";
+import { getOptionalServerSession } from "@/lib/auth";
 
 export default async function DashboardTaxonomyPage() {
-    const session = await getServerSession(authOptions);
+    const session = await getOptionalServerSession();
 
     if (!session?.user?.id) {
-        redirect("/login");
+        redirect("/login?next=/dashboard/taxonomy");
     }
 
     return <TaxonomyManagementClient />;

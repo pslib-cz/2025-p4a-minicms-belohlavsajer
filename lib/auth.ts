@@ -1,4 +1,5 @@
-import type { NextAuthOptions } from "next-auth";
+import type { NextAuthOptions, Session } from "next-auth";
+import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -73,3 +74,12 @@ export const authOptions: NextAuthOptions = {
         },
     },
 };
+
+export async function getOptionalServerSession(): Promise<Session | null> {
+    try {
+        return await getServerSession(authOptions);
+    } catch (error) {
+        console.error("Failed to resolve server session.", error);
+        return null;
+    }
+}

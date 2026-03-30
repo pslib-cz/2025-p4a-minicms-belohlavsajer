@@ -1,14 +1,13 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
-import { authOptions } from "@/lib/auth";
+import { getOptionalServerSession } from "@/lib/auth";
 
 export default async function DashboardPage() {
-    const session = await getServerSession(authOptions);
+    const session = await getOptionalServerSession();
 
     if (!session?.user?.id) {
-        redirect("/login");
+        redirect("/login?next=/dashboard");
     }
 
     return <DashboardClient />;

@@ -1,11 +1,10 @@
 import { Prisma } from "@prisma/client";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
-import { authOptions } from "@/lib/auth";
+import { getOptionalServerSession } from "@/lib/auth";
 
 export async function requireUserId(): Promise<number | NextResponse> {
-    const session = await getServerSession(authOptions);
+    const session = await getOptionalServerSession();
     const userId = Number.parseInt(session?.user?.id ?? "", 10);
 
     if (!session?.user?.id || Number.isNaN(userId)) {

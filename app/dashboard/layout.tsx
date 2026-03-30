@@ -1,15 +1,15 @@
-import { getServerSession } from "next-auth";
-
 import { LogoutButton } from "@/components/auth/logout-button";
 import { DashboardSidebarNav } from "@/components/dashboard/dashboard-sidebar-nav";
-import { authOptions } from "@/lib/auth";
+import { getOptionalServerSession } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const session = await getServerSession(authOptions);
+    const session = await getOptionalServerSession();
     const username = session?.user?.name ?? "Unknown user";
 
     return (
