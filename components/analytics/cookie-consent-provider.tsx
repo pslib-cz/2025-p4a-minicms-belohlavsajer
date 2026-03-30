@@ -20,6 +20,7 @@ import {
 const COOKIE_CONSENT_NAME = "minecraft_portal_cookie_consent";
 const COOKIE_CONSENT_REVISION = 1;
 const PREVIEW_SERVICE = "consent_preview";
+const PROVIDER_INSTANCE_VERSION = "cookie-consent-v3-preview-1";
 
 type CookieConsentConfig = Parameters<CookieConsentApi["run"]>[0];
 
@@ -214,8 +215,11 @@ function buildConsentConfig(
     };
 }
 
-export function CookieConsentProvider() {
-    const pathname = usePathname();
+type CookieConsentRuntimeProps = {
+    pathname: string;
+};
+
+function CookieConsentRuntime({ pathname }: CookieConsentRuntimeProps) {
     const initStatusRef = useRef<"idle" | "pending" | "ready">("idle");
     const isDevelopment = process.env.NODE_ENV !== "production";
     const gtmEnabled = Boolean(process.env.NEXT_PUBLIC_GTM_ID?.trim());
@@ -243,7 +247,8 @@ export function CookieConsentProvider() {
         }
 
         const cookieConsentApi = window.__minecraftPortalCookieConsentApi;
-        if (cookieConsentApi && initStatusRef.current === "ready") {
+        if (cookieConsentApi) {
+            initStatusRef.current = "ready";
             syncConsentState(cookieConsentApi);
             return;
         }
@@ -299,4 +304,15 @@ export function CookieConsentProvider() {
     }, [pathname, isDevelopment, gtmEnabled, clarityEnabled, previewMode]);
 
     return null;
+}
+
+export function CookieConsentProvider() {
+    const pathname = usePathname();
+
+    return (
+        <CookieConsentRuntime
+            key={`${PROVIDER_INSTANCE_VERSION}:${pathname}`}
+            pathname={pathname}
+        />
+    );
 }
