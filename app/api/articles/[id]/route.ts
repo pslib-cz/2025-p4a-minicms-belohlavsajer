@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
+import { sanitizeArticleHtml } from "@/lib/html";
 import { prisma } from "@/lib/prisma";
-import { slugify } from "@/lib/utils";
+import { slugify, stripHtml } from "@/lib/utils";
 import { articleInputSchema } from "@/lib/validation";
-import { requireUserId } from "@/lib/api";
+import { mapPrismaError, parseJsonBody, requireUserId } from "@/lib/api";
 
 async function generateUniqueArticleSlug(
     title: string,
@@ -45,6 +47,24 @@ async function ensureOwnership(articleId: number, userId: number) {
     }
 
     return article;
+}
+
+function isSlugConflict(error: unknown): boolean {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+        return false;
+    }
+
+    if (error.code !== "P2002") {
+        return false;
+    }
+
+    const target = error.meta?.target;
+
+    if (!Array.isArray(target)) {
+        return false;
+    }
+
+    return target.includes("slug");
 }
 
 export async function GET(
@@ -100,7 +120,21 @@ export async function PUT(
         return ownership;
     }
 
-    const body = await request.json();
+    const bodyResult = await parseJsonBody<unknown>(request);
+
+    if (!bodyResult.ok) {
+        return bodyResult.response;
+    }
+
+    if (
+        typeof bodyResult.data !== "object" ||
+        bodyResult.data === null ||
+        Array.isArray(bodyResult.data)
+    ) {
+        return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    const body = bodyResult.data as Record<string, unknown>;
     const parsed = articleInputSchema.safeParse({
         ...body,
         categoryId: body.categoryId ?? null,
@@ -114,27 +148,71 @@ export async function PUT(
         );
     }
 
-    const slug = await generateUniqueArticleSlug(parsed.data.title, articleId);
+    const sanitizedContent = sanitizeArticleHtml(parsed.data.content);
 
-    const updated = await prisma.article.update({
-        where: { id: articleId },
-        data: {
-            title: parsed.data.title,
-            slug,
-            excerpt: parsed.data.excerpt || null,
-            content: parsed.data.content,
-            categoryId: parsed.data.categoryId,
-            tags: {
-                set: parsed.data.tagIds.map((tagId) => ({ id: tagId })),
+    if (stripHtml(sanitizedContent).length < 20) {
+        return NextResponse.json(
+            {
+                error: "Validation failed",
+                details: {
+                    fieldErrors: {
+                        content: [
+                            "Content must include at least 20 characters.",
+                        ],
+                    },
+                },
             },
-        },
-        include: {
-            category: true,
-            tags: true,
-        },
-    });
+            { status: 400 },
+        );
+    }
 
-    return NextResponse.json(updated);
+    const maxSlugAttempts = 5;
+
+    for (let attempt = 0; attempt < maxSlugAttempts; attempt += 1) {
+        const slug = await generateUniqueArticleSlug(
+            parsed.data.title,
+            articleId,
+        );
+
+        try {
+            const updated = await prisma.article.update({
+                where: { id: articleId },
+                data: {
+                    title: parsed.data.title,
+                    slug,
+                    excerpt: parsed.data.excerpt || null,
+                    content: sanitizedContent,
+                    categoryId: parsed.data.categoryId,
+                    tags: {
+                        set: parsed.data.tagIds.map((tagId) => ({ id: tagId })),
+                    },
+                },
+                include: {
+                    category: true,
+                    tags: true,
+                },
+            });
+
+            return NextResponse.json(updated);
+        } catch (error) {
+            if (isSlugConflict(error)) {
+                continue;
+            }
+
+            const prismaResponse = mapPrismaError(error);
+
+            if (prismaResponse) {
+                return prismaResponse;
+            }
+
+            throw error;
+        }
+    }
+
+    return NextResponse.json(
+        { error: "Could not generate unique slug. Please retry." },
+        { status: 409 },
+    );
 }
 
 export async function DELETE(
@@ -158,7 +236,17 @@ export async function DELETE(
         return ownership;
     }
 
-    await prisma.article.delete({ where: { id: articleId } });
+    try {
+        await prisma.article.delete({ where: { id: articleId } });
+    } catch (error) {
+        const prismaResponse = mapPrismaError(error);
+
+        if (prismaResponse) {
+            return prismaResponse;
+        }
+
+        throw error;
+    }
 
     return NextResponse.json({ success: true });
 }

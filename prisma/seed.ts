@@ -106,7 +106,7 @@ async function main() {
         },
     });
 
-    console.log({ user: user.username, password: "password123" });
+    console.log({ user: user.username });
 }
 
 main()

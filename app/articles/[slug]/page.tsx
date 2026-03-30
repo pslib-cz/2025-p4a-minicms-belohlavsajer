@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { sanitizeArticleHtml } from "@/lib/html";
 import { buildExcerpt, getPublishedArticleBySlug } from "@/lib/public-content";
 
 type Props = {
@@ -18,7 +19,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         };
     }
 
-    const description = article.excerpt || buildExcerpt(article.content);
+    const safeContent = sanitizeArticleHtml(article.content);
+    const description = article.excerpt || buildExcerpt(safeContent);
 
     return {
         title: article.title,
@@ -45,6 +47,8 @@ export default async function ArticleDetailPage({ params }: Props) {
         notFound();
     }
 
+    const safeContent = sanitizeArticleHtml(article.content);
+
     return (
         <main className="container ui-page">
             <article
@@ -57,7 +61,7 @@ export default async function ArticleDetailPage({ params }: Props) {
                         {article.title}
                     </h1>
                     <p className="lead ui-subtitle mb-2">
-                        {article.excerpt || buildExcerpt(article.content, 220)}
+                        {article.excerpt || buildExcerpt(safeContent, 220)}
                     </p>
                     <div className="small text-muted">
                         Autor: {article.author.username}
@@ -73,7 +77,7 @@ export default async function ArticleDetailPage({ params }: Props) {
 
                 <section
                     className="article-content"
-                    dangerouslySetInnerHTML={{ __html: article.content }}
+                    dangerouslySetInnerHTML={{ __html: safeContent }}
                 />
             </article>
         </main>

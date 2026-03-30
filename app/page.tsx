@@ -208,21 +208,37 @@ export default async function Home({ searchParams }: Props) {
                 className="d-flex justify-content-center gap-2 mt-4"
                 aria-label="Pagination"
             >
-                <Link
-                    href={`/?${prevParams}`}
-                    className={`btn btn-outline-dark ${page <= 1 ? "disabled" : ""}`}
-                    aria-disabled={page <= 1}
-                >
-                    Predchozi
-                </Link>
+                {page <= 1 ? (
+                    <span
+                        className="btn btn-outline-dark disabled"
+                        aria-disabled
+                    >
+                        Predchozi
+                    </span>
+                ) : (
+                    <Link
+                        href={`/?${prevParams}`}
+                        className="btn btn-outline-dark"
+                    >
+                        Predchozi
+                    </Link>
+                )}
                 <span className="btn btn-light border">{`${page} / ${totalPages}`}</span>
-                <Link
-                    href={`/?${nextParams}`}
-                    className={`btn btn-outline-dark ${page >= totalPages ? "disabled" : ""}`}
-                    aria-disabled={page >= totalPages}
-                >
-                    Dalsi
-                </Link>
+                {page >= totalPages ? (
+                    <span
+                        className="btn btn-outline-dark disabled"
+                        aria-disabled
+                    >
+                        Dalsi
+                    </span>
+                ) : (
+                    <Link
+                        href={`/?${nextParams}`}
+                        className="btn btn-outline-dark"
+                    >
+                        Dalsi
+                    </Link>
+                )}
             </nav>
         </main>
     );

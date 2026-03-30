@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireUserId } from "@/lib/api";
+import { mapPrismaError, requireUserId } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
@@ -28,7 +28,17 @@ export async function DELETE(
         return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    await prisma.tag.delete({ where: { id: tagId } });
+    try {
+        await prisma.tag.delete({ where: { id: tagId } });
+    } catch (error) {
+        const prismaResponse = mapPrismaError(error);
+
+        if (prismaResponse) {
+            return prismaResponse;
+        }
+
+        throw error;
+    }
 
     return NextResponse.json({ success: true });
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { taxonomyInputSchema } from "@/lib/validation";
-import { requireUserId } from "@/lib/api";
+import { mapPrismaError, parseJsonBody, requireUserId } from "@/lib/api";
 
 export async function GET() {
     const userIdResult = await requireUserId();
@@ -23,8 +23,13 @@ export async function POST(request: NextRequest) {
         return userIdResult;
     }
 
-    const body = await request.json();
-    const parsed = taxonomyInputSchema.safeParse(body);
+    const bodyResult = await parseJsonBody<unknown>(request);
+
+    if (!bodyResult.ok) {
+        return bodyResult.response;
+    }
+
+    const parsed = taxonomyInputSchema.safeParse(bodyResult.data);
 
     if (!parsed.success) {
         return NextResponse.json(
@@ -33,11 +38,21 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const category = await prisma.category.upsert({
-        where: { name: parsed.data.name },
-        update: {},
-        create: { name: parsed.data.name },
-    });
+    try {
+        const category = await prisma.category.upsert({
+            where: { name: parsed.data.name },
+            update: {},
+            create: { name: parsed.data.name },
+        });
 
-    return NextResponse.json(category, { status: 201 });
+        return NextResponse.json(category);
+    } catch (error) {
+        const prismaResponse = mapPrismaError(error);
+
+        if (prismaResponse) {
+            return prismaResponse;
+        }
+
+        throw error;
+    }
 }

@@ -13,13 +13,6 @@
     --dashboard-sidebar-width: clamp(250px, 22vw, 300px);
 }
 
-@theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --font-sans: var(--font-geist-sans);
-    --font-mono: var(--font-geist-mono);
-}
-
 body {
     background: radial-gradient(circle at top right, #f4f0e7, #f7f7f5 40%);
     color: var(--foreground);

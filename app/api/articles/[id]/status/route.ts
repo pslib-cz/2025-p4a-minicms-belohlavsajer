@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { statusInputSchema } from "@/lib/validation";
-import { requireUserId } from "@/lib/api";
+import { mapPrismaError, parseJsonBody, requireUserId } from "@/lib/api";
 
 export async function PATCH(
     request: NextRequest,
@@ -32,8 +32,13 @@ export async function PATCH(
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const parsed = statusInputSchema.safeParse(body);
+    const bodyResult = await parseJsonBody<unknown>(request);
+
+    if (!bodyResult.ok) {
+        return bodyResult.response;
+    }
+
+    const parsed = statusInputSchema.safeParse(bodyResult.data);
 
     if (!parsed.success) {
         return NextResponse.json(
@@ -44,19 +49,29 @@ export async function PATCH(
 
     const isPublishing = parsed.data.status === "PUBLISHED";
 
-    const updated = await prisma.article.update({
-        where: { id: articleId },
-        data: {
-            status: parsed.data.status,
-            publishedAt: isPublishing
-                ? (article.publishedAt ?? new Date())
-                : null,
-        },
-        include: {
-            category: true,
-            tags: true,
-        },
-    });
+    try {
+        const updated = await prisma.article.update({
+            where: { id: articleId },
+            data: {
+                status: parsed.data.status,
+                publishedAt: isPublishing
+                    ? (article.publishedAt ?? new Date())
+                    : null,
+            },
+            include: {
+                category: true,
+                tags: true,
+            },
+        });
 
-    return NextResponse.json(updated);
+        return NextResponse.json(updated);
+    } catch (error) {
+        const prismaResponse = mapPrismaError(error);
+
+        if (prismaResponse) {
+            return prismaResponse;
+        }
+
+        throw error;
+    }
 }

@@ -10,8 +10,8 @@ import { SectionCard } from "@/components/ui/section-card";
 import { StatusAlert } from "@/components/ui/status-alert";
 
 export function LoginForm() {
-    const [username, setUsername] = useState("test");
-    const [password, setPassword] = useState("password123");
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
