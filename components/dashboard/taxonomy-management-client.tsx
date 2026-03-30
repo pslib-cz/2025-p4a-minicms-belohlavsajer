@@ -47,7 +47,7 @@ export function TaxonomyManagementClient() {
             ]);
 
             if (!categoriesResponse.ok || !tagsResponse.ok) {
-                throw new Error("Nepodarilo se nacist tagy a kategorie.");
+                throw new Error("Nepodařilo se načíst tagy a typy obsahu.");
             }
 
             const [categoriesData, tagsData] = await Promise.all([
@@ -61,7 +61,7 @@ export function TaxonomyManagementClient() {
             setError(
                 loadError instanceof Error
                     ? loadError.message
-                    : "Nepodarilo se nacist taxonomii.",
+                    : "Nepodařilo se načíst taxonomii.",
             );
         } finally {
             setLoading(false);
@@ -94,7 +94,7 @@ export function TaxonomyManagementClient() {
                 throw new Error(
                     await getErrorMessage(
                         response,
-                        "Nepodarilo se ulozit taxonomii.",
+                        "Nepodařilo se uložit taxonomii.",
                     ),
                 );
             }
@@ -110,7 +110,7 @@ export function TaxonomyManagementClient() {
             setError(
                 saveError instanceof Error
                     ? saveError.message
-                    : "Nepodarilo se ulozit taxonomii.",
+                    : "Nepodařilo se uložit taxonomii.",
             );
         } finally {
             setSaving(false);
@@ -130,7 +130,7 @@ export function TaxonomyManagementClient() {
                 throw new Error(
                     await getErrorMessage(
                         response,
-                        "Nepodarilo se smazat taxonomii.",
+                        "Nepodařilo se smazat taxonomii.",
                     ),
                 );
             }
@@ -140,7 +140,7 @@ export function TaxonomyManagementClient() {
             setError(
                 deleteError instanceof Error
                     ? deleteError.message
-                    : "Nepodarilo se smazat taxonomii.",
+                    : "Nepodařilo se smazat taxonomii.",
             );
         } finally {
             setDeletingKey(null);
@@ -159,7 +159,7 @@ export function TaxonomyManagementClient() {
 
     async function handleDeleteCategory(category: TaxonomyItem) {
         const shouldDelete = window.confirm(
-            `Opravdu smazat kategorii "${category.name}"?`,
+            `Opravdu smazat typ obsahu "${category.name}"?`,
         );
 
         if (!shouldDelete) {
@@ -183,18 +183,23 @@ export function TaxonomyManagementClient() {
 
     return (
         <Container className="ui-page">
-            <PageHeader title="Tagy a Kategorie" loading={loading} />
+            <PageHeader
+                title="Tagy a typy obsahu"
+                eyebrow="Taxonomy Control"
+                subtitle="Spravuj hlavní typy guideů a tagy pro platformu, mód hraní, verzi a obtížnost."
+                loading={loading}
+            />
 
             <StatusAlert message={error} />
 
             <Row className="g-4">
                 <Col lg={6}>
                     <TaxonomyPanel
-                        title="Kategorie"
+                        title="Typy obsahu"
                         items={categories}
                         inputValue={newCategoryName}
-                        inputPlaceholder="Nova kategorie"
-                        emptyLabel="Zadne kategorie"
+                        inputPlaceholder="Nový typ obsahu"
+                        emptyLabel="Žádné typy obsahu"
                         deletingPrefix="categories"
                         deletingKey={deletingKey}
                         disabled={saving || deletingKey !== null}
@@ -209,8 +214,8 @@ export function TaxonomyManagementClient() {
                         title="Tagy"
                         items={tags}
                         inputValue={newTagName}
-                        inputPlaceholder="Novy tag"
-                        emptyLabel="Zadne tagy"
+                        inputPlaceholder="Nový tag"
+                        emptyLabel="Žádné tagy"
                         deletingPrefix="tags"
                         deletingKey={deletingKey}
                         disabled={saving || deletingKey !== null}

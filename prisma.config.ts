@@ -4,10 +4,16 @@
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
 
+const databaseTarget =
+    process.env.DATABASE_TARGET === "postgres" ? "postgres" : "sqlite";
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
-    path: "prisma/migrations",
+    path:
+      databaseTarget === "postgres"
+        ? "prisma/migrations-postgres"
+        : "prisma/migrations-sqlite",
   },
   engine: "classic",
   datasource: {

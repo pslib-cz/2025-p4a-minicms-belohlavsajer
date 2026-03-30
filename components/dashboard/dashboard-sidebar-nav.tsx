@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { MinecraftLinkButton } from "@/components/ui/minecraft-button";
 
 type NavItem = {
     href: string;
@@ -11,11 +11,11 @@ type NavItem = {
 const navItems: NavItem[] = [
     {
         href: "/dashboard",
-        label: "Články",
+        label: "Guides",
     },
     {
         href: "/dashboard/taxonomy",
-        label: "Tagy a Kategorie",
+        label: "Tagy a typy",
     },
 ];
 
@@ -36,16 +36,19 @@ export function DashboardSidebarNav() {
                 const isActive = isActivePath(pathname, item.href);
 
                 return (
-                    <Link
+                    <MinecraftLinkButton
                         key={item.href}
                         href={item.href}
-                        className={`dashboard-nav-link text-decoration-none ${
+                        variant={isActive ? "primary" : "secondary"}
+                        block
+                        small
+                        className={`dashboard-nav-link ${
                             isActive ? "dashboard-nav-link-active" : ""
                         }`}
                         aria-current={isActive ? "page" : undefined}
                     >
                         {item.label}
-                    </Link>
+                    </MinecraftLinkButton>
                 );
             })}
         </nav>

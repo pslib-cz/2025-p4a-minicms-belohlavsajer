@@ -1,15 +1,16 @@
 "use client";
 
 import { signOut } from "next-auth/react";
+import { MinecraftButton } from "@/components/ui/minecraft-button";
 
 export function LogoutButton() {
     return (
-        <button
+        <MinecraftButton
             type="button"
-            className="btn btn-outline-dark"
+            variant="secondary"
             onClick={() => void signOut({ callbackUrl: "/login" })}
         >
-            Odhlasit se
-        </button>
+            Odhlásit se
+        </MinecraftButton>
     );
 }

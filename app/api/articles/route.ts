@@ -61,8 +61,8 @@ export async function GET(request: NextRequest) {
         ...(query
             ? {
                   OR: [
-                      { title: { contains: query, mode: "insensitive" } },
-                      { content: { contains: query, mode: "insensitive" } },
+                      { title: { contains: query } },
+                      { content: { contains: query } },
                   ],
               }
             : {}),
@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
     const body = bodyResult.data as Record<string, unknown>;
     const parsed = articleInputSchema.safeParse({
         ...body,
+        coverImage: body.coverImage ?? "",
         categoryId: body.categoryId ?? null,
         tagIds: body.tagIds ?? [],
     });
@@ -131,13 +132,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
             {
                 error: "Validation failed",
-                details: {
-                    fieldErrors: {
-                        content: [
-                            "Content must include at least 20 characters.",
-                        ],
-                    },
-                },
+                        details: {
+                            fieldErrors: {
+                                content: [
+                                    "Content must include at least 20 characters.",
+                                ],
+                            },
+                        },
             },
             { status: 400 },
         );
@@ -154,9 +155,11 @@ export async function POST(request: NextRequest) {
                     title: parsed.data.title,
                     slug,
                     excerpt: parsed.data.excerpt || null,
+                    coverImage: parsed.data.coverImage || null,
                     content: sanitizedContent,
                     authorId: userIdResult,
                     categoryId: parsed.data.categoryId,
+                    publishDate: null,
                     tags: {
                         connect: parsed.data.tagIds.map((id) => ({ id })),
                     },

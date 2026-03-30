@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { sanitizeArticleHtml } from "@/lib/html";
 import { prisma } from "@/lib/prisma";
 import { slugify, stripHtml } from "@/lib/utils";
-import { articleInputSchema } from "@/lib/validation";
+import { articleInputSchema, statusInputSchema } from "@/lib/validation";
 import { mapPrismaError, parseJsonBody, requireUserId } from "@/lib/api";
 
 async function generateUniqueArticleSlug(
@@ -99,6 +99,71 @@ export async function GET(
     return NextResponse.json(article);
 }
 
+export async function PATCH(
+    request: NextRequest,
+    context: { params: Promise<{ id: string }> },
+) {
+    const userIdResult = await requireUserId();
+    if (userIdResult instanceof NextResponse) {
+        return userIdResult;
+    }
+
+    const { id } = await context.params;
+    const articleId = Number.parseInt(id, 10);
+
+    if (Number.isNaN(articleId)) {
+        return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    }
+
+    const ownership = await ensureOwnership(articleId, userIdResult);
+    if (ownership instanceof NextResponse) {
+        return ownership;
+    }
+
+    const bodyResult = await parseJsonBody<unknown>(request);
+
+    if (!bodyResult.ok) {
+        return bodyResult.response;
+    }
+
+    const parsed = statusInputSchema.safeParse(bodyResult.data);
+
+    if (!parsed.success) {
+        return NextResponse.json(
+            { error: "Validation failed", details: parsed.error.flatten() },
+            { status: 400 },
+        );
+    }
+
+    const isPublishing = parsed.data.status === "PUBLISHED";
+
+    try {
+        const updated = await prisma.article.update({
+            where: { id: articleId },
+            data: {
+                status: parsed.data.status,
+                publishDate: isPublishing
+                    ? (ownership.publishDate ?? new Date())
+                    : null,
+            },
+            include: {
+                category: true,
+                tags: true,
+            },
+        });
+
+        return NextResponse.json(updated);
+    } catch (error) {
+        const prismaResponse = mapPrismaError(error);
+
+        if (prismaResponse) {
+            return prismaResponse;
+        }
+
+        throw error;
+    }
+}
+
 export async function PUT(
     request: NextRequest,
     context: { params: Promise<{ id: string }> },
@@ -137,6 +202,7 @@ export async function PUT(
     const body = bodyResult.data as Record<string, unknown>;
     const parsed = articleInputSchema.safeParse({
         ...body,
+        coverImage: body.coverImage ?? "",
         categoryId: body.categoryId ?? null,
         tagIds: body.tagIds ?? [],
     });
@@ -154,13 +220,13 @@ export async function PUT(
         return NextResponse.json(
             {
                 error: "Validation failed",
-                details: {
-                    fieldErrors: {
-                        content: [
-                            "Content must include at least 20 characters.",
-                        ],
-                    },
-                },
+                        details: {
+                            fieldErrors: {
+                                content: [
+                                    "Content must include at least 20 characters.",
+                                ],
+                            },
+                        },
             },
             { status: 400 },
         );
@@ -181,8 +247,10 @@ export async function PUT(
                     title: parsed.data.title,
                     slug,
                     excerpt: parsed.data.excerpt || null,
+                    coverImage: parsed.data.coverImage || null,
                     content: sanitizedContent,
                     categoryId: parsed.data.categoryId,
+                    publishDate: ownership.publishDate,
                     tags: {
                         set: parsed.data.tagIds.map((tagId) => ({ id: tagId })),
                     },

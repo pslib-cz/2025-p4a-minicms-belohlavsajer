@@ -6,8 +6,8 @@ import { LoginForm } from "@/components/auth/login-form";
 import { authOptions } from "@/lib/auth";
 
 export const metadata: Metadata = {
-    title: "Prihlaseni",
-    description: "Prihlaseni do CMS dashboardu.",
+    title: "Přihlášení",
+    description: "Přihlášení do redakční konzole Minecraft Portal.",
     robots: {
         index: false,
         follow: false,

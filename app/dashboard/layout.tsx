@@ -17,10 +17,13 @@ export default async function DashboardLayout({
             <aside className="dashboard-sidebar">
                 <div className="dashboard-sidebar-card">
                     <div>
-                        <p className="text-uppercase text-muted small fw-semibold mb-1">
-                            Dashboard
+                        <p className="text-uppercase dashboard-shell-label mb-1">
+                            Portal Ops
                         </p>
-                        <p className="text-dark fw-semibold mb-4">{username}</p>
+                        <p className="dashboard-shell-brand mb-1">
+                            Minecraft Portal
+                        </p>
+                        <p className="dashboard-username mb-4">{username}</p>
 
                         <DashboardSidebarNav />
                     </div>

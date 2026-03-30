@@ -54,8 +54,8 @@ export async function PATCH(
             where: { id: articleId },
             data: {
                 status: parsed.data.status,
-                publishedAt: isPublishing
-                    ? (article.publishedAt ?? new Date())
+                publishDate: isPublishing
+                    ? (article.publishDate ?? new Date())
                     : null,
             },
             include: {

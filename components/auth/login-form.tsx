@@ -3,9 +3,10 @@
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Form, Spinner } from "react-bootstrap";
+import { Form, Spinner } from "react-bootstrap";
 
 import { FormField } from "@/components/ui/form-field";
+import { MinecraftButton } from "@/components/ui/minecraft-button";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatusAlert } from "@/components/ui/status-alert";
 
@@ -34,7 +35,7 @@ export function LoginForm() {
         setLoading(false);
 
         if (!result || result.error) {
-            setError("Neplatne prihlasovaci udaje.");
+            setError("Neplatné přihlašovací údaje.");
             return;
         }
 
@@ -44,7 +45,7 @@ export function LoginForm() {
 
     return (
         <SectionCard
-            title="Prihlaseni do dashboardu"
+            title="Přihlášení do Portal Ops"
             titleAs="h1"
             headingClassName="h3"
             bodyClassName="p-4 p-md-5"
@@ -52,8 +53,14 @@ export function LoginForm() {
         >
             <StatusAlert message={error} />
 
+            <p className="ui-subtitle mb-4">
+                Přihlášení odemyká interní konzoli pro správu guideů, typů
+                obsahu a tagů. Demo účet: <strong>test</strong> /{" "}
+                <strong>password123</strong>
+            </p>
+
             <Form onSubmit={onSubmit}>
-                <FormField controlId="username" label="Uzivatelske jmeno">
+                <FormField controlId="username" label="Uživatelské jméno">
                     <Form.Control
                         type="text"
                         value={username}
@@ -73,21 +80,21 @@ export function LoginForm() {
                     />
                 </FormField>
 
-                <Button
+                <MinecraftButton
                     type="submit"
-                    variant="dark"
-                    className="w-100"
+                    variant="primary"
+                    block
                     disabled={loading}
                 >
                     {loading ? (
                         <>
                             <Spinner size="sm" className="me-2" />
-                            Prihlasuji...
+                            Přihlašuji...
                         </>
                     ) : (
-                        "Prihlasit"
+                        "Přihlásit"
                     )}
-                </Button>
+                </MinecraftButton>
             </Form>
         </SectionCard>
     );

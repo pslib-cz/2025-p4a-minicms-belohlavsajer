@@ -1,22 +1,33 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+    type ChangeEvent,
+    FormEvent,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import {
     Badge,
-    Button,
     Col,
     Container,
     Form,
-    Pagination,
     Row,
     Table,
 } from "react-bootstrap";
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor";
 import { FormField } from "@/components/ui/form-field";
+import {
+    MinecraftButton,
+    MinecraftButtonLabel,
+    MinecraftLinkButton,
+} from "@/components/ui/minecraft-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatusAlert } from "@/components/ui/status-alert";
+import { isValidImageSource } from "@/lib/utils";
 import { articleInputSchema } from "@/lib/validation";
 
 type TaxonomyItem = {
@@ -30,6 +41,7 @@ type ArticleItem = {
     slug: string;
     excerpt: string | null;
     content: string;
+    coverImage: string | null;
     status: "DRAFT" | "PUBLISHED";
     updatedAt: string;
     categoryId: number | null;
@@ -48,8 +60,14 @@ type FormState = {
     title: string;
     excerpt: string;
     content: string;
+    coverImage: string;
     categoryId: string;
     tagIds: number[];
+};
+
+type UploadImageResponse = {
+    src?: string;
+    error?: string;
 };
 
 const defaultContent = "";
@@ -60,6 +78,7 @@ function toFormState(article?: ArticleItem): FormState {
             title: "",
             excerpt: "",
             content: defaultContent,
+            coverImage: "",
             categoryId: "",
             tagIds: [],
         };
@@ -70,6 +89,7 @@ function toFormState(article?: ArticleItem): FormState {
         title: article.title,
         excerpt: article.excerpt ?? "",
         content: article.content,
+        coverImage: article.coverImage ?? "",
         categoryId: article.categoryId ? String(article.categoryId) : "",
         tagIds: article.tags.map((tag) => tag.id),
     };
@@ -84,12 +104,52 @@ export function DashboardClient() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [error, setError] = useState<string | null>(null);
+    const [coverUploadError, setCoverUploadError] = useState<string | null>(
+        null,
+    );
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [uploadingCover, setUploadingCover] = useState(false);
+    const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(
+        null,
+    );
+    const [selectedCoverPreviewUrl, setSelectedCoverPreviewUrl] = useState<
+        string | null
+    >(null);
+    const coverFileInputRef = useRef<HTMLInputElement | null>(null);
 
     const submitLabel = useMemo(() => {
-        return form.id ? "Ulozit zmeny" : "Vytvorit clanek";
+        return form.id ? "Uložit změny" : "Vytvořit guide";
     }, [form.id]);
+
+    const publishedCount = useMemo(
+        () => articles.filter((article) => article.status === "PUBLISHED").length,
+        [articles],
+    );
+    const draftCount = useMemo(
+        () => articles.filter((article) => article.status === "DRAFT").length,
+        [articles],
+    );
+    const normalizedCoverImage = form.coverImage.trim();
+    const coverPreview =
+        selectedCoverPreviewUrl ||
+        (normalizedCoverImage && isValidImageSource(normalizedCoverImage)
+            ? normalizedCoverImage
+            : null);
+
+    useEffect(() => {
+        if (!selectedCoverFile) {
+            setSelectedCoverPreviewUrl(null);
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(selectedCoverFile);
+        setSelectedCoverPreviewUrl(objectUrl);
+
+        return () => {
+            URL.revokeObjectURL(objectUrl);
+        };
+    }, [selectedCoverFile]);
 
     async function loadTaxonomy() {
         const [categoriesResponse, tagsResponse] = await Promise.all([
@@ -98,7 +158,7 @@ export function DashboardClient() {
         ]);
 
         if (!categoriesResponse.ok || !tagsResponse.ok) {
-            throw new Error("Nepodarilo se nacist tagy a kategorie.");
+            throw new Error("Nepodařilo se načíst tagy a typy obsahu.");
         }
 
         const [categoriesData, tagsData] = await Promise.all([
@@ -127,7 +187,7 @@ export function DashboardClient() {
             });
 
             if (!response.ok) {
-                throw new Error("Nepodarilo se nacist seznam clanku.");
+                throw new Error("Nepodařilo se načíst seznam guideů.");
             }
 
             const data = (await response.json()) as ArticlesResponse;
@@ -148,7 +208,7 @@ export function DashboardClient() {
                 const message =
                     loadError instanceof Error
                         ? loadError.message
-                        : "Nepodarilo se nacist data dashboardu.";
+                        : "Nepodařilo se načíst data dashboardu.";
                 setError(message);
             }
         })();
@@ -156,6 +216,15 @@ export function DashboardClient() {
 
     async function refreshList(overridePage?: number) {
         await loadArticles(overridePage ?? page, query);
+    }
+
+    function resetCoverUploadState() {
+        setCoverUploadError(null);
+        setSelectedCoverFile(null);
+
+        if (coverFileInputRef.current) {
+            coverFileInputRef.current.value = "";
+        }
     }
 
     function handleTagChange(tagId: number, checked: boolean) {
@@ -175,6 +244,7 @@ export function DashboardClient() {
             title: form.title,
             excerpt: form.excerpt,
             content: form.content,
+            coverImage: form.coverImage,
             categoryId: form.categoryId ? Number(form.categoryId) : null,
             tagIds: form.tagIds,
         };
@@ -184,7 +254,7 @@ export function DashboardClient() {
         if (!validation.success) {
             setError(
                 validation.error.issues[0]?.message ??
-                    "Neplatna data formulare.",
+                    "Neplatná data formuláře.",
             );
             return;
         }
@@ -205,16 +275,17 @@ export function DashboardClient() {
 
             if (!response.ok) {
                 const data = (await response.json()) as { error?: string };
-                throw new Error(data.error ?? "Ulozeni selhalo.");
+                throw new Error(data.error ?? "Uložení selhalo.");
             }
 
             setForm(toFormState());
+            resetCoverUploadState();
             await refreshList(1);
         } catch (submitError) {
             setError(
                 submitError instanceof Error
                     ? submitError.message
-                    : "Ulozeni selhalo.",
+                    : "Uložení selhalo.",
             );
         } finally {
             setSaving(false);
@@ -222,7 +293,7 @@ export function DashboardClient() {
     }
 
     async function removeArticle(id: number) {
-        if (!window.confirm("Opravdu chcete clanek smazat?")) {
+        if (!window.confirm("Opravdu chcete guide smazat?")) {
             return;
         }
 
@@ -231,12 +302,13 @@ export function DashboardClient() {
         });
 
         if (!response.ok) {
-            setError("Mazani selhalo.");
+            setError("Mazání selhalo.");
             return;
         }
 
         if (form.id === id) {
             setForm(toFormState());
+            resetCoverUploadState();
         }
 
         await refreshList();
@@ -245,7 +317,7 @@ export function DashboardClient() {
     async function toggleStatus(article: ArticleItem) {
         const nextStatus = article.status === "DRAFT" ? "PUBLISHED" : "DRAFT";
 
-        const response = await fetch(`/api/articles/${article.id}/status`, {
+        const response = await fetch(`/api/articles/${article.id}`, {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
@@ -254,11 +326,57 @@ export function DashboardClient() {
         });
 
         if (!response.ok) {
-            setError("Zmena statusu selhala.");
+            const data = (await response.json().catch(() => ({}))) as {
+                error?: string;
+            };
+            setError(data.error ?? "Změna statusu selhala.");
             return;
         }
 
         await refreshList();
+    }
+
+    async function uploadCoverImage() {
+        if (!selectedCoverFile) {
+            setCoverUploadError("Vyber obrázek, který chceš nahrát.");
+            return;
+        }
+
+        setUploadingCover(true);
+        setCoverUploadError(null);
+
+        const formData = new FormData();
+        formData.append("file", selectedCoverFile);
+
+        if (form.title.trim()) {
+            formData.append("alt", form.title.trim());
+        }
+
+        try {
+            const response = await fetch("/api/uploads/guides", {
+                method: "POST",
+                body: formData,
+            });
+            const data = (await response.json()) as UploadImageResponse;
+
+            if (!response.ok || !data.src) {
+                throw new Error(data.error ?? "Nahrání hero obrázku selhalo.");
+            }
+
+            setForm((prev) => ({
+                ...prev,
+                coverImage: data.src ?? "",
+            }));
+            resetCoverUploadState();
+        } catch (uploadError) {
+            setCoverUploadError(
+                uploadError instanceof Error
+                    ? uploadError.message
+                    : "Nahrání hero obrázku selhalo.",
+            );
+        } finally {
+            setUploadingCover(false);
+        }
     }
 
     async function handleSearch(event: FormEvent<HTMLFormElement>) {
@@ -268,12 +386,37 @@ export function DashboardClient() {
 
     return (
         <Container className="ui-page">
-            <PageHeader title="Články" loading={loading} />
+            <PageHeader
+                title="Guide Control"
+                eyebrow="Portal Ops"
+                subtitle="Spravuj vlastní tutorialy, server entries a build guidey přes jednu redakční konzoli."
+                loading={loading}
+                actions={
+                    <MinecraftLinkButton href="/guides" variant="secondary">
+                        Veřejný katalog
+                    </MinecraftLinkButton>
+                }
+            />
+
+            <section className="dashboard-stat-grid">
+                <div className="dashboard-stat-card">
+                    <span className="dashboard-stat-label">Na stránce</span>
+                    <strong>{articles.length}</strong>
+                </div>
+                <div className="dashboard-stat-card">
+                    <span className="dashboard-stat-label">Published</span>
+                    <strong>{publishedCount}</strong>
+                </div>
+                <div className="dashboard-stat-card">
+                    <span className="dashboard-stat-label">Draft</span>
+                    <strong>{draftCount}</strong>
+                </div>
+            </section>
 
             <Row className="g-4">
                 <Col lg={5}>
                     <SectionCard
-                        title={form.id ? "Editace clanku" : "Novy clanek"}
+                        title={form.id ? "Editor guideu" : "Nový guide"}
                         headingClassName="h4"
                     >
                         <StatusAlert message={error} />
@@ -293,7 +436,7 @@ export function DashboardClient() {
                                 />
                             </FormField>
 
-                            <FormField controlId="excerpt" label="Perex">
+                            <FormField controlId="excerpt" label="Krátké shrnutí">
                                 <Form.Control
                                     as="textarea"
                                     rows={2}
@@ -307,7 +450,115 @@ export function DashboardClient() {
                                 />
                             </FormField>
 
-                            <FormField controlId="categoryId" label="Kategorie">
+                            <FormField controlId="coverImage" label="Hero obrázek">
+                                <div className="dashboard-cover-grid">
+                                    <div className="dashboard-cover-fields">
+                                        <Form.Control
+                                            value={form.coverImage}
+                                            onChange={(event) => {
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    coverImage:
+                                                        event.target.value,
+                                                }));
+                                                setCoverUploadError(null);
+                                            }}
+                                            placeholder="/uploads/guides/... nebo https://..."
+                                        />
+                                        <Form.Control
+                                            ref={coverFileInputRef}
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                                            onChange={(
+                                                event: ChangeEvent<HTMLInputElement>,
+                                            ) => {
+                                                setSelectedCoverFile(
+                                                    event.currentTarget.files?.[0] ??
+                                                        null,
+                                                );
+                                                setCoverUploadError(null);
+                                            }}
+                                        />
+                                        {selectedCoverFile ? (
+                                            <Form.Text className="text-muted">
+                                                Vybraný soubor:{" "}
+                                                {selectedCoverFile.name}
+                                            </Form.Text>
+                                        ) : null}
+                                        <div className="mc-button-row">
+                                            <MinecraftButton
+                                                type="button"
+                                                variant="secondary"
+                                                onClick={() =>
+                                                    void uploadCoverImage()
+                                                }
+                                                disabled={uploadingCover}
+                                            >
+                                                {uploadingCover
+                                                    ? "Nahrávám..."
+                                                    : "Nahrát hero obrázek"}
+                                            </MinecraftButton>
+                                            <MinecraftButton
+                                                type="button"
+                                                variant="secondary"
+                                                onClick={() => {
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        coverImage: "",
+                                                    }));
+                                                    resetCoverUploadState();
+                                                }}
+                                            >
+                                                Vymazat obrázek
+                                            </MinecraftButton>
+                                        </div>
+                                        <Form.Text className="text-muted">
+                                            Hero obrázek se ukáže v kartách i v
+                                            horní hero sekci detailu guideu.
+                                            Když ho nenastavíš, veřejná část
+                                            zkusí použít první obrázek z obsahu.
+                                        </Form.Text>
+                                        {coverUploadError ? (
+                                            <div className="dashboard-cover-error">
+                                                {coverUploadError}
+                                            </div>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="dashboard-cover-preview">
+                                        {coverPreview ? (
+                                            <>
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={coverPreview}
+                                                    alt={
+                                                        form.title ||
+                                                        "Hero preview"
+                                                    }
+                                                    className="dashboard-cover-preview-image"
+                                                />
+                                                <div className="dashboard-cover-meta">
+                                                    <strong>
+                                                        Aktuální preview
+                                                    </strong>
+                                                    <span className="dashboard-cover-path">
+                                                        {selectedCoverFile
+                                                            ? selectedCoverFile.name
+                                                            : normalizedCoverImage}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="dashboard-cover-placeholder">
+                                                Po vložení nebo nahrání se tady
+                                                ukáže hero preview.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </FormField>
+
+                            <FormField controlId="categoryId" label="Typ obsahu">
                                 <Form.Select
                                     value={form.categoryId}
                                     onChange={(event) =>
@@ -317,7 +568,7 @@ export function DashboardClient() {
                                         }))
                                     }
                                 >
-                                    <option value="">Bez kategorie</option>
+                                    <option value="">Bez typu</option>
                                     {categories.map((category) => (
                                         <option
                                             key={category.id}
@@ -358,35 +609,46 @@ export function DashboardClient() {
 
                             <FormField
                                 controlId="content"
-                                label="Obsah (WYSIWYG)"
+                                label="Obsah guideu (WYSIWYG)"
                                 className="mb-4"
                             >
-                                <RichTextEditor
-                                    value={form.content}
-                                    onChange={(value) =>
-                                        setForm((prev) => ({
-                                            ...prev,
-                                            content: value,
-                                        }))
-                                    }
-                                />
+                                <>
+                                    <RichTextEditor
+                                        value={form.content}
+                                        onChange={(value) =>
+                                            setForm((prev) => ({
+                                                ...prev,
+                                                content: value,
+                                            }))
+                                        }
+                                    />
+                                    <Form.Text className="text-muted">
+                                        Editor ukládá formátovaný HTML obsah,
+                                        který se po publikaci propíše do detailu
+                                        guideu včetně vložených a nahraných
+                                        obrázků.
+                                    </Form.Text>
+                                </>
                             </FormField>
 
-                            <div className="d-flex gap-2">
-                                <Button
+                            <div className="mc-button-row">
+                                <MinecraftButton
                                     type="submit"
-                                    variant="dark"
+                                    variant="primary"
                                     disabled={saving}
                                 >
-                                    {saving ? "Ukladam..." : submitLabel}
-                                </Button>
-                                <Button
+                                    {saving ? "Ukládám..." : submitLabel}
+                                </MinecraftButton>
+                                <MinecraftButton
                                     type="button"
-                                    variant="outline-dark"
-                                    onClick={() => setForm(toFormState())}
+                                    variant="secondary"
+                                    onClick={() => {
+                                        setForm(toFormState());
+                                        resetCoverUploadState();
+                                    }}
                                 >
                                     Reset
-                                </Button>
+                                </MinecraftButton>
                             </div>
                         </Form>
                     </SectionCard>
@@ -394,7 +656,7 @@ export function DashboardClient() {
 
                 <Col lg={7}>
                     <SectionCard
-                        title="Moje clanky"
+                        title="Moje guidey"
                         headingClassName="h4"
                         loading={loading}
                     >
@@ -407,11 +669,11 @@ export function DashboardClient() {
                                 onChange={(event) =>
                                     setQuery(event.target.value)
                                 }
-                                placeholder="Hledat podle titulku nebo textu"
+                                placeholder="Hledat podle názvu nebo obsahu guideu"
                             />
-                            <Button type="submit" variant="outline-dark">
+                            <MinecraftButton type="submit" variant="secondary">
                                 Hledat
-                            </Button>
+                            </MinecraftButton>
                         </Form>
 
                         <Table hover responsive>
@@ -419,7 +681,7 @@ export function DashboardClient() {
                                 <tr>
                                     <th>Titulek</th>
                                     <th>Status</th>
-                                    <th>Taxonomie</th>
+                                    <th>Typ a tagy</th>
                                     <th>Akce</th>
                                 </tr>
                             </thead>
@@ -430,7 +692,7 @@ export function DashboardClient() {
                                             colSpan={4}
                                             className="text-center text-muted py-4"
                                         >
-                                            Zadne clanky
+                                            Žádné guidey
                                         </td>
                                     </tr>
                                 ) : (
@@ -453,39 +715,55 @@ export function DashboardClient() {
                                                             : "secondary"
                                                     }
                                                 >
-                                                    {article.status}
+                                                    {article.status ===
+                                                    "PUBLISHED"
+                                                        ? "Published"
+                                                        : "Draft"}
                                                 </Badge>
                                             </td>
                                             <td>
-                                                <div className="small">
+                                                <div className="small fw-semibold">
                                                     {article.category?.name ??
-                                                        "Bez kategorie"}
+                                                        "Bez typu"}
                                                 </div>
                                                 <div className="small text-muted">
                                                     {article.tags
                                                         .map((tag) => tag.name)
                                                         .join(", ") ||
-                                                        "Bez tagu"}
+                                                        "Bez tagů"}
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="d-flex gap-2 flex-wrap">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline-dark"
+                                                <div className="mc-button-row">
+                                                    <MinecraftButton
+                                                        small
+                                                        variant="secondary"
                                                         onClick={() =>
-                                                            setForm(
-                                                                toFormState(
-                                                                    article,
-                                                                ),
-                                                            )
+                                                            {
+                                                                setForm(
+                                                                    toFormState(
+                                                                        article,
+                                                                    ),
+                                                                );
+                                                                resetCoverUploadState();
+                                                            }
                                                         }
                                                     >
                                                         Edit
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline-dark"
+                                                    </MinecraftButton>
+                                                    {article.status ===
+                                                    "PUBLISHED" ? (
+                                                        <MinecraftLinkButton
+                                                            href={`/guides/${article.slug}`}
+                                                            variant="secondary"
+                                                            small
+                                                        >
+                                                            Preview
+                                                        </MinecraftLinkButton>
+                                                    ) : null}
+                                                    <MinecraftButton
+                                                        small
+                                                        variant="secondary"
                                                         onClick={() =>
                                                             void toggleStatus(
                                                                 article,
@@ -495,11 +773,11 @@ export function DashboardClient() {
                                                         {article.status ===
                                                         "DRAFT"
                                                             ? "Publikovat"
-                                                            : "Draft"}
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline-dark"
+                                                            : "Stáhnout"}
+                                                    </MinecraftButton>
+                                                    <MinecraftButton
+                                                        small
+                                                        variant="secondary"
                                                         onClick={() =>
                                                             void removeArticle(
                                                                 article.id,
@@ -507,7 +785,7 @@ export function DashboardClient() {
                                                         }
                                                     >
                                                         Smazat
-                                                    </Button>
+                                                    </MinecraftButton>
                                                 </div>
                                             </td>
                                         </tr>
@@ -516,23 +794,31 @@ export function DashboardClient() {
                             </tbody>
                         </Table>
 
-                        <Pagination className="mb-0 dashboard-pagination">
-                            <Pagination.Prev
+                        <nav className="dashboard-pagination" aria-label="Pagination">
+                            <MinecraftButton
+                                type="button"
+                                variant="secondary"
                                 disabled={page <= 1}
                                 onClick={() =>
                                     void loadArticles(page - 1, query)
                                 }
-                            />
-                            <Pagination.Item
-                                active
-                            >{`${page} / ${totalPages}`}</Pagination.Item>
-                            <Pagination.Next
+                            >
+                                Předchozí
+                            </MinecraftButton>
+                            <MinecraftButtonLabel variant="secondary">
+                                {`${page} / ${totalPages}`}
+                            </MinecraftButtonLabel>
+                            <MinecraftButton
+                                type="button"
+                                variant="secondary"
                                 disabled={page >= totalPages}
                                 onClick={() =>
                                     void loadArticles(page + 1, query)
                                 }
-                            />
-                        </Pagination>
+                            >
+                                Další
+                            </MinecraftButton>
+                        </nav>
                     </SectionCard>
                 </Col>
             </Row>

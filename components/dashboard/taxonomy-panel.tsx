@@ -1,6 +1,7 @@
 import { FormEvent } from "react";
-import { Badge, Button, Form, ListGroup, Spinner } from "react-bootstrap";
+import { Badge, Form, ListGroup, Spinner } from "react-bootstrap";
 
+import { MinecraftButton } from "@/components/ui/minecraft-button";
 import { SectionCard } from "@/components/ui/section-card";
 
 type TaxonomyItem = {
@@ -52,9 +53,9 @@ export function TaxonomyPanel({
                     placeholder={inputPlaceholder}
                     maxLength={60}
                 />
-                <Button type="submit" variant="dark" disabled={disabled}>
-                    Pridat
-                </Button>
+                <MinecraftButton type="submit" variant="primary" disabled={disabled}>
+                    Přidat
+                </MinecraftButton>
             </Form>
 
             <ListGroup>
@@ -73,10 +74,10 @@ export function TaxonomyPanel({
                                 className="d-flex justify-content-between align-items-center gap-2"
                             >
                                 <span>{item.name}</span>
-                                <Button
+                                <MinecraftButton
                                     type="button"
-                                    variant="outline-danger"
-                                    size="sm"
+                                    variant="secondary"
+                                    small
                                     onClick={() => void onDelete(item)}
                                     disabled={disabled}
                                 >
@@ -86,12 +87,12 @@ export function TaxonomyPanel({
                                                 size="sm"
                                                 className="me-2"
                                             />
-                                            Mazu...
+                                            Mažu...
                                         </>
                                     ) : (
                                         "Smazat"
                                     )}
-                                </Button>
+                                </MinecraftButton>
                             </ListGroup.Item>
                         );
                     })
