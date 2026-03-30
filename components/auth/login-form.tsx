@@ -3,7 +3,11 @@
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Alert, Button, Card, Form, Spinner } from "react-bootstrap";
+import { Button, Form, Spinner } from "react-bootstrap";
+
+import { FormField } from "@/components/ui/form-field";
+import { SectionCard } from "@/components/ui/section-card";
+import { StatusAlert } from "@/components/ui/status-alert";
 
 export function LoginForm() {
     const [username, setUsername] = useState("test");
@@ -39,56 +43,52 @@ export function LoginForm() {
     }
 
     return (
-        <Card className="ui-card">
-            <Card.Body className="p-4 p-md-5">
-                <h1 className="h3 mb-4 ui-title">Prihlaseni do dashboardu</h1>
+        <SectionCard
+            title="Prihlaseni do dashboardu"
+            titleAs="h1"
+            headingClassName="h3"
+            bodyClassName="p-4 p-md-5"
+            headerClassName="mb-4"
+        >
+            <StatusAlert message={error} />
 
-                {error ? <Alert variant="danger">{error}</Alert> : null}
+            <Form onSubmit={onSubmit}>
+                <FormField controlId="username" label="Uzivatelske jmeno">
+                    <Form.Control
+                        type="text"
+                        value={username}
+                        onChange={(event) => setUsername(event.target.value)}
+                        required
+                        minLength={2}
+                    />
+                </FormField>
 
-                <Form onSubmit={onSubmit}>
-                    <Form.Group className="mb-3" controlId="username">
-                        <Form.Label>Uzivatelske jmeno</Form.Label>
-                        <Form.Control
-                            type="text"
-                            value={username}
-                            onChange={(event) =>
-                                setUsername(event.target.value)
-                            }
-                            required
-                            minLength={2}
-                        />
-                    </Form.Group>
+                <FormField controlId="password" label="Heslo" className="mb-4">
+                    <Form.Control
+                        type="password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        required
+                        minLength={6}
+                    />
+                </FormField>
 
-                    <Form.Group className="mb-4" controlId="password">
-                        <Form.Label>Heslo</Form.Label>
-                        <Form.Control
-                            type="password"
-                            value={password}
-                            onChange={(event) =>
-                                setPassword(event.target.value)
-                            }
-                            required
-                            minLength={6}
-                        />
-                    </Form.Group>
-
-                    <Button
-                        type="submit"
-                        variant="dark"
-                        className="w-100"
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <>
-                                <Spinner size="sm" className="me-2" />
-                                Prihlasuji...
-                            </>
-                        ) : (
-                            "Prihlasit"
-                        )}
-                    </Button>
-                </Form>
-            </Card.Body>
-        </Card>
+                <Button
+                    type="submit"
+                    variant="dark"
+                    className="w-100"
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <>
+                            <Spinner size="sm" className="me-2" />
+                            Prihlasuji...
+                        </>
+                    ) : (
+                        "Prihlasit"
+                    )}
+                </Button>
+            </Form>
+        </SectionCard>
     );
 }

@@ -2,20 +2,21 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
-    Alert,
     Badge,
     Button,
-    Card,
     Col,
     Container,
     Form,
     Pagination,
     Row,
-    Spinner,
     Table,
 } from "react-bootstrap";
 
 import { RichTextEditor } from "@/components/dashboard/rich-text-editor";
+import { FormField } from "@/components/ui/form-field";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionCard } from "@/components/ui/section-card";
+import { StatusAlert } from "@/components/ui/status-alert";
 import { articleInputSchema } from "@/lib/validation";
 
 type TaxonomyItem = {
@@ -267,291 +268,272 @@ export function DashboardClient() {
 
     return (
         <Container className="ui-page">
+            <PageHeader title="Články" loading={loading} />
+
             <Row className="g-4">
                 <Col lg={5}>
-                    <Card className="ui-card">
-                        <Card.Body>
-                            <h2 className="h4 mb-3 ui-title">
-                                {form.id ? "Editace clanku" : "Novy clanek"}
-                            </h2>
-                            {error ? (
-                                <Alert variant="danger">{error}</Alert>
-                            ) : null}
+                    <SectionCard
+                        title={form.id ? "Editace clanku" : "Novy clanek"}
+                        headingClassName="h4"
+                    >
+                        <StatusAlert message={error} />
 
-                            <Form onSubmit={submitArticle}>
-                                <Form.Group className="mb-3" controlId="title">
-                                    <Form.Label>Titulek</Form.Label>
-                                    <Form.Control
-                                        value={form.title}
-                                        onChange={(event) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                title: event.target.value,
-                                            }))
-                                        }
-                                        required
-                                        minLength={3}
-                                    />
-                                </Form.Group>
+                        <Form onSubmit={submitArticle}>
+                            <FormField controlId="title" label="Titulek">
+                                <Form.Control
+                                    value={form.title}
+                                    onChange={(event) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            title: event.target.value,
+                                        }))
+                                    }
+                                    required
+                                    minLength={3}
+                                />
+                            </FormField>
 
-                                <Form.Group
-                                    className="mb-3"
-                                    controlId="excerpt"
+                            <FormField controlId="excerpt" label="Perex">
+                                <Form.Control
+                                    as="textarea"
+                                    rows={2}
+                                    value={form.excerpt}
+                                    onChange={(event) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            excerpt: event.target.value,
+                                        }))
+                                    }
+                                />
+                            </FormField>
+
+                            <FormField controlId="categoryId" label="Kategorie">
+                                <Form.Select
+                                    value={form.categoryId}
+                                    onChange={(event) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            categoryId: event.target.value,
+                                        }))
+                                    }
                                 >
-                                    <Form.Label>Perex</Form.Label>
-                                    <Form.Control
-                                        as="textarea"
-                                        rows={2}
-                                        value={form.excerpt}
-                                        onChange={(event) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                excerpt: event.target.value,
-                                            }))
-                                        }
-                                    />
-                                </Form.Group>
+                                    <option value="">Bez kategorie</option>
+                                    {categories.map((category) => (
+                                        <option
+                                            key={category.id}
+                                            value={category.id}
+                                        >
+                                            {category.name}
+                                        </option>
+                                    ))}
+                                </Form.Select>
+                            </FormField>
 
-                                <Form.Group
-                                    className="mb-3"
-                                    controlId="categoryId"
-                                >
-                                    <Form.Label>Kategorie</Form.Label>
-                                    <Form.Select
-                                        value={form.categoryId}
-                                        onChange={(event) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                categoryId: event.target.value,
-                                            }))
-                                        }
-                                    >
-                                        <option value="">Bez kategorie</option>
-                                        {categories.map((category) => (
-                                            <option
-                                                key={category.id}
-                                                value={category.id}
-                                            >
-                                                {category.name}
-                                            </option>
-                                        ))}
-                                    </Form.Select>
-                                </Form.Group>
+                            <FormField controlId="tags" label="Tagy">
+                                <div className="d-flex flex-wrap gap-2">
+                                    {tags.map((tag) => {
+                                        const checked = form.tagIds.includes(
+                                            tag.id,
+                                        );
 
-                                <Form.Group className="mb-3" controlId="tags">
-                                    <Form.Label>Tagy</Form.Label>
-                                    <div className="d-flex flex-wrap gap-2">
-                                        {tags.map((tag) => {
-                                            const checked =
-                                                form.tagIds.includes(tag.id);
-
-                                            return (
-                                                <Form.Check
-                                                    inline
-                                                    key={tag.id}
-                                                    type="checkbox"
-                                                    id={`tag-${tag.id}`}
-                                                    label={tag.name}
-                                                    checked={checked}
-                                                    onChange={(event) =>
-                                                        handleTagChange(
-                                                            tag.id,
-                                                            event.target
-                                                                .checked,
-                                                        )
-                                                    }
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                </Form.Group>
-
-                                <Form.Group
-                                    className="mb-4"
-                                    controlId="content"
-                                >
-                                    <Form.Label>Obsah (WYSIWYG)</Form.Label>
-                                    <RichTextEditor
-                                        value={form.content}
-                                        onChange={(value) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                content: value,
-                                            }))
-                                        }
-                                    />
-                                </Form.Group>
-
-                                <div className="d-flex gap-2">
-                                    <Button
-                                        type="submit"
-                                        variant="dark"
-                                        disabled={saving}
-                                    >
-                                        {saving ? "Ukladam..." : submitLabel}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="outline-dark"
-                                        onClick={() => setForm(toFormState())}
-                                    >
-                                        Reset
-                                    </Button>
+                                        return (
+                                            <Form.Check
+                                                inline
+                                                key={tag.id}
+                                                type="checkbox"
+                                                id={`tag-${tag.id}`}
+                                                label={tag.name}
+                                                checked={checked}
+                                                onChange={(event) =>
+                                                    handleTagChange(
+                                                        tag.id,
+                                                        event.target.checked,
+                                                    )
+                                                }
+                                            />
+                                        );
+                                    })}
                                 </div>
-                            </Form>
-                        </Card.Body>
-                    </Card>
+                            </FormField>
+
+                            <FormField
+                                controlId="content"
+                                label="Obsah (WYSIWYG)"
+                                className="mb-4"
+                            >
+                                <RichTextEditor
+                                    value={form.content}
+                                    onChange={(value) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            content: value,
+                                        }))
+                                    }
+                                />
+                            </FormField>
+
+                            <div className="d-flex gap-2">
+                                <Button
+                                    type="submit"
+                                    variant="dark"
+                                    disabled={saving}
+                                >
+                                    {saving ? "Ukladam..." : submitLabel}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline-dark"
+                                    onClick={() => setForm(toFormState())}
+                                >
+                                    Reset
+                                </Button>
+                            </div>
+                        </Form>
+                    </SectionCard>
                 </Col>
 
                 <Col lg={7}>
-                    <Card className="ui-card">
-                        <Card.Body>
-                            <div className="d-flex justify-content-between align-items-center mb-3">
-                                <h2 className="h4 m-0 ui-title">Moje clanky</h2>
-                                {loading ? <Spinner size="sm" /> : null}
-                            </div>
+                    <SectionCard
+                        title="Moje clanky"
+                        headingClassName="h4"
+                        loading={loading}
+                    >
+                        <Form
+                            className="d-flex gap-2 mb-3"
+                            onSubmit={handleSearch}
+                        >
+                            <Form.Control
+                                value={query}
+                                onChange={(event) =>
+                                    setQuery(event.target.value)
+                                }
+                                placeholder="Hledat podle titulku nebo textu"
+                            />
+                            <Button type="submit" variant="outline-dark">
+                                Hledat
+                            </Button>
+                        </Form>
 
-                            <Form
-                                className="d-flex gap-2 mb-3"
-                                onSubmit={handleSearch}
-                            >
-                                <Form.Control
-                                    value={query}
-                                    onChange={(event) =>
-                                        setQuery(event.target.value)
-                                    }
-                                    placeholder="Hledat podle titulku nebo textu"
-                                />
-                                <Button type="submit" variant="outline-dark">
-                                    Hledat
-                                </Button>
-                            </Form>
-
-                            <Table hover responsive>
-                                <thead>
+                        <Table hover responsive>
+                            <thead>
+                                <tr>
+                                    <th>Titulek</th>
+                                    <th>Status</th>
+                                    <th>Taxonomie</th>
+                                    <th>Akce</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {articles.length === 0 ? (
                                     <tr>
-                                        <th>Titulek</th>
-                                        <th>Status</th>
-                                        <th>Taxonomie</th>
-                                        <th>Akce</th>
+                                        <td
+                                            colSpan={4}
+                                            className="text-center text-muted py-4"
+                                        >
+                                            Zadne clanky
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {articles.length === 0 ? (
-                                        <tr>
-                                            <td
-                                                colSpan={4}
-                                                className="text-center text-muted py-4"
-                                            >
-                                                Zadne clanky
+                                ) : (
+                                    articles.map((article) => (
+                                        <tr key={article.id}>
+                                            <td>
+                                                <div className="fw-semibold">
+                                                    {article.title}
+                                                </div>
+                                                <div className="text-muted small">
+                                                    /{article.slug}
+                                                </div>
                                             </td>
-                                        </tr>
-                                    ) : (
-                                        articles.map((article) => (
-                                            <tr key={article.id}>
-                                                <td>
-                                                    <div className="fw-semibold">
-                                                        {article.title}
-                                                    </div>
-                                                    <div className="text-muted small">
-                                                        /{article.slug}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <Badge
-                                                        bg={
-                                                            article.status ===
-                                                            "PUBLISHED"
-                                                                ? "success"
-                                                                : "secondary"
+                                            <td>
+                                                <Badge
+                                                    bg={
+                                                        article.status ===
+                                                        "PUBLISHED"
+                                                            ? "success"
+                                                            : "secondary"
+                                                    }
+                                                >
+                                                    {article.status}
+                                                </Badge>
+                                            </td>
+                                            <td>
+                                                <div className="small">
+                                                    {article.category?.name ??
+                                                        "Bez kategorie"}
+                                                </div>
+                                                <div className="small text-muted">
+                                                    {article.tags
+                                                        .map((tag) => tag.name)
+                                                        .join(", ") ||
+                                                        "Bez tagu"}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="d-flex gap-2 flex-wrap">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline-dark"
+                                                        onClick={() =>
+                                                            setForm(
+                                                                toFormState(
+                                                                    article,
+                                                                ),
+                                                            )
                                                         }
                                                     >
-                                                        {article.status}
-                                                    </Badge>
-                                                </td>
-                                                <td>
-                                                    <div className="small">
-                                                        {article.category
-                                                            ?.name ??
-                                                            "Bez kategorie"}
-                                                    </div>
-                                                    <div className="small text-muted">
-                                                        {article.tags
-                                                            .map(
-                                                                (tag) =>
-                                                                    tag.name,
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline-dark"
+                                                        onClick={() =>
+                                                            void toggleStatus(
+                                                                article,
                                                             )
-                                                            .join(", ") ||
-                                                            "Bez tagu"}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="d-flex gap-2 flex-wrap">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline-dark"
-                                                            onClick={() =>
-                                                                setForm(
-                                                                    toFormState(
-                                                                        article,
-                                                                    ),
-                                                                )
-                                                            }
-                                                        >
-                                                            Edit
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline-dark"
-                                                            onClick={() =>
-                                                                void toggleStatus(
-                                                                    article,
-                                                                )
-                                                            }
-                                                        >
-                                                            {article.status ===
-                                                            "DRAFT"
-                                                                ? "Publikovat"
-                                                                : "Draft"}
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline-dark"
-                                                            onClick={() =>
-                                                                void removeArticle(
-                                                                    article.id,
-                                                                )
-                                                            }
-                                                        >
-                                                            Smazat
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </Table>
+                                                        }
+                                                    >
+                                                        {article.status ===
+                                                        "DRAFT"
+                                                            ? "Publikovat"
+                                                            : "Draft"}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline-dark"
+                                                        onClick={() =>
+                                                            void removeArticle(
+                                                                article.id,
+                                                            )
+                                                        }
+                                                    >
+                                                        Smazat
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </Table>
 
-                            <Pagination className="mb-0 dashboard-pagination">
-                                <Pagination.Prev
-                                    disabled={page <= 1}
-                                    onClick={() =>
-                                        void loadArticles(page - 1, query)
-                                    }
-                                />
-                                <Pagination.Item
-                                    active
-                                >{`${page} / ${totalPages}`}</Pagination.Item>
-                                <Pagination.Next
-                                    disabled={page >= totalPages}
-                                    onClick={() =>
-                                        void loadArticles(page + 1, query)
-                                    }
-                                />
-                            </Pagination>
-                        </Card.Body>
-                    </Card>
+                        <Pagination className="mb-0 dashboard-pagination">
+                            <Pagination.Prev
+                                disabled={page <= 1}
+                                onClick={() =>
+                                    void loadArticles(page - 1, query)
+                                }
+                            />
+                            <Pagination.Item
+                                active
+                            >{`${page} / ${totalPages}`}</Pagination.Item>
+                            <Pagination.Next
+                                disabled={page >= totalPages}
+                                onClick={() =>
+                                    void loadArticles(page + 1, query)
+                                }
+                            />
+                        </Pagination>
+                    </SectionCard>
                 </Col>
             </Row>
         </Container>
