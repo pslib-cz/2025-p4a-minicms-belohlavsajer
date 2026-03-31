@@ -56,6 +56,12 @@ export default function RootLayout({
             data-scroll-behavior="smooth"
             className={`${spaceGrotesk.variable} ${pixelifySans.variable} h-full antialiased`}
         >
+            <head>
+                <meta
+                    name="google-site-verification"
+                    content="SRC0SGMkE5Lp-FKK_18ytX3pAVfo_rbTJD2gvDW-zvE"
+                />
+            </head>
             <body
                 className="min-h-full d-flex flex-column"
                 style={{ position: "relative" }}
