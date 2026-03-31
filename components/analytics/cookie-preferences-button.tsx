@@ -15,12 +15,7 @@ export function CookiePreferencesButton() {
             process.env.NODE_ENV !== "production",
     );
 
-    if (
-        !hasConsentUi ||
-        !initialized ||
-        !consentDefined ||
-        !isPublicAnalyticsPath(pathname)
-    ) {
+    if (!hasConsentUi || !initialized || !isPublicAnalyticsPath(pathname)) {
         return null;
     }
 
@@ -30,7 +25,7 @@ export function CookiePreferencesButton() {
             className="cookie-preferences-button"
             onClick={openCookiePreferences}
         >
-            Nastavení cookies
+            {consentDefined ? "Nastavení cookies" : "Volba cookies"}
         </button>
     );
 }

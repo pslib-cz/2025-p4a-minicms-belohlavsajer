@@ -18,7 +18,7 @@ import {
 } from "@/lib/analytics/consent-state";
 
 const COOKIE_CONSENT_NAME = "minecraft_portal_cookie_consent";
-const COOKIE_CONSENT_REVISION = 1;
+const COOKIE_CONSENT_REVISION_BASE = 2;
 const PREVIEW_SERVICE = "consent_preview";
 const PROVIDER_INSTANCE_VERSION = "cookie-consent-v3-preview-1";
 
@@ -76,9 +76,15 @@ function buildConsentConfig(
         };
     }
 
+    const revision =
+        COOKIE_CONSENT_REVISION_BASE +
+        (gtmEnabled ? 1 : 0) +
+        (clarityEnabled ? 2 : 0) +
+        (previewMode ? 4 : 0);
+
     return {
         mode: "opt-in",
-        revision: COOKIE_CONSENT_REVISION,
+        revision,
         manageScriptTags: false,
         disablePageInteraction: false,
         cookie: {
@@ -133,8 +139,10 @@ function buildConsentConfig(
                         title: "Cookies pro volitelnou analytiku",
                         description:
                             previewMode
-                                ? "Používáme nezbytné cookies pro běh webu a přihlášení. Tohle je lokální preview consent UI, takže bez nastaveného GTM nebo Clarity se po povolení nic nezačne měřit."
-                                : "Používáme nezbytné cookies pro běh webu a přihlášení. Volitelně můžeme zapnout analytiku pro měření návštěvnosti a zlepšování veřejné části webu.",
+                                ? "Používáme nezbytné cookies pro běh webu a přihlášení. Tohle je lokální preview consent UI, takže bez nastaveného GTM nebo Clarity se po povolení nic nezačne měřit. {{revisionMessage}}"
+                                : "Používáme nezbytné cookies pro běh webu a přihlášení. Volitelně můžeme zapnout analytiku pro měření návštěvnosti a zlepšování veřejné části webu. {{revisionMessage}}",
+                        revisionMessage:
+                            "Pokud jste web navštívili dřív, obnovili jsme nastavení cookies kvůli změně aktivních analytických služeb.",
                         acceptAllBtn: "Povolit analytiku",
                         acceptNecessaryBtn: "Pouze nezbytné",
                         showPreferencesBtn: "Nastavení cookies",

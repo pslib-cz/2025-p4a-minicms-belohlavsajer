@@ -86,7 +86,17 @@ export function openCookiePreferences() {
         return;
     }
 
-    window.__minecraftPortalCookieConsentApi?.showPreferences();
+    const cookieConsentApi = window.__minecraftPortalCookieConsentApi;
+    if (!cookieConsentApi) {
+        return;
+    }
+
+    if (cookieConsentApi.validConsent()) {
+        cookieConsentApi.showPreferences();
+        return;
+    }
+
+    cookieConsentApi.show(true);
 }
 
 export function primeGoogleConsentModeDefaults() {
