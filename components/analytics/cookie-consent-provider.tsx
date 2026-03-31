@@ -1,326 +1,333 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { isPublicAnalyticsPath } from "@/lib/analytics/public-routes";
 import {
-    ANALYTICS_CATEGORY,
-    CLARITY_SERVICE,
     DEFAULT_ANALYTICS_CONSENT_SNAPSHOT,
-    GTM_SERVICE,
-    primeGoogleConsentModeDefaults,
+    openCookiePreferences,
     setConsentSnapshot,
+    subscribeCookiePreferencesOpen,
     updateClarityConsentMode,
     updateGoogleConsentMode,
     type AnalyticsConsentSnapshot,
-    type CookieConsentApi,
 } from "@/lib/analytics/consent-state";
+import {
+    getConfiguredClarityProjectId,
+    getConfiguredGtmId,
+} from "@/lib/analytics/config";
 
 const COOKIE_CONSENT_NAME = "minecraft_portal_cookie_consent";
-const COOKIE_CONSENT_REVISION_BASE = 2;
-const PREVIEW_SERVICE = "consent_preview";
-const PROVIDER_INSTANCE_VERSION = "cookie-consent-v3-preview-1";
+const COOKIE_CONSENT_REVISION = 3;
+const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 182;
 
-type CookieConsentConfig = Parameters<CookieConsentApi["run"]>[0];
-
-function buildConsentSnapshot(api: CookieConsentApi): AnalyticsConsentSnapshot {
-    const consentDefined = api.validConsent();
-    const analyticsAccepted = api.acceptedCategory(ANALYTICS_CATEGORY);
-
-    return {
-        initialized: true,
-        consentDefined,
-        analyticsAccepted,
-        gtmAccepted:
-            consentDefined &&
-            analyticsAccepted &&
-            api.acceptedService(GTM_SERVICE, ANALYTICS_CATEGORY),
-        clarityAccepted:
-            consentDefined &&
-            analyticsAccepted &&
-            api.acceptedService(CLARITY_SERVICE, ANALYTICS_CATEGORY),
-    };
-}
-
-function syncConsentState(api: CookieConsentApi) {
-    const snapshot = buildConsentSnapshot(api);
-    setConsentSnapshot(snapshot);
-    updateGoogleConsentMode(snapshot.gtmAccepted);
-    updateClarityConsentMode(snapshot.clarityAccepted);
-}
-
-function buildConsentConfig(
-    api: CookieConsentApi,
-    gtmEnabled: boolean,
-    clarityEnabled: boolean,
-    previewMode: boolean,
-): CookieConsentConfig {
-    const analyticsServices: Record<string, { label: string }> = {};
-
-    if (gtmEnabled) {
-        analyticsServices[GTM_SERVICE] = {
-            label: "Google Analytics 4 přes Google Tag Manager",
-        };
-    }
-
-    if (clarityEnabled) {
-        analyticsServices[CLARITY_SERVICE] = {
-            label: "Microsoft Clarity heatmapy a session replay",
-        };
-    }
-
-    if (previewMode) {
-        analyticsServices[PREVIEW_SERVICE] = {
-            label: "Lokální preview consent UI bez aktivního měření",
-        };
-    }
-
-    const revision =
-        COOKIE_CONSENT_REVISION_BASE +
-        (gtmEnabled ? 1 : 0) +
-        (clarityEnabled ? 2 : 0) +
-        (previewMode ? 4 : 0);
-
-    return {
-        mode: "opt-in",
-        revision,
-        manageScriptTags: false,
-        disablePageInteraction: false,
-        cookie: {
-            name: COOKIE_CONSENT_NAME,
-            sameSite: "Lax",
-            expiresAfterDays: 182,
-        },
-        guiOptions: {
-            consentModal: {
-                layout: "box wide",
-                position: "bottom left",
-                flipButtons: false,
-                equalWeightButtons: true,
-            },
-            preferencesModal: {
-                layout: "box",
-                equalWeightButtons: true,
-                flipButtons: false,
-            },
-        },
-        onConsent: () => {
-            syncConsentState(api);
-        },
-        onChange: () => {
-            syncConsentState(api);
-        },
-        categories: {
-            necessary: {
-                enabled: true,
-                readOnly: true,
-            },
-            [ANALYTICS_CATEGORY]: {
-                autoClear: {
-                    cookies: [
-                        { name: /^_ga/ },
-                        { name: "_gid" },
-                        { name: /^_gat/ },
-                        { name: /^_gcl/ },
-                        { name: "_clck" },
-                        { name: "_clsk" },
-                    ],
-                },
-                services: analyticsServices,
-            },
-        },
-        language: {
-            default: "cs",
-            translations: {
-                cs: {
-                    consentModal: {
-                        label: "Cookie souhlas pro volitelnou analytiku",
-                        title: "Cookies pro volitelnou analytiku",
-                        description:
-                            previewMode
-                                ? "Používáme nezbytné cookies pro běh webu a přihlášení. Tohle je lokální preview consent UI, takže bez nastaveného GTM nebo Clarity se po povolení nic nezačne měřit. {{revisionMessage}}"
-                                : "Používáme nezbytné cookies pro běh webu a přihlášení. Volitelně můžeme zapnout analytiku pro měření návštěvnosti a zlepšování veřejné části webu. {{revisionMessage}}",
-                        revisionMessage:
-                            "Pokud jste web navštívili dřív, obnovili jsme nastavení cookies kvůli změně aktivních analytických služeb.",
-                        acceptAllBtn: "Povolit analytiku",
-                        acceptNecessaryBtn: "Pouze nezbytné",
-                        showPreferencesBtn: "Nastavení cookies",
-                    },
-                    preferencesModal: {
-                        title: "Nastavení cookies",
-                        acceptAllBtn: "Povolit vše",
-                        acceptNecessaryBtn: "Pouze nezbytné",
-                        savePreferencesBtn: "Uložit výběr",
-                        closeIconLabel: "Zavřít",
-                        serviceCounterLabel: "služba",
-                        sections: [
-                            {
-                                title: "Jak cookies používáme",
-                                description:
-                                    "Nezbytné cookies drží přihlášení a bezpečnost formulářů. Volitelná analytika nám pomáhá rozumět tomu, které veřejné stránky a prvky fungují dobře.",
-                            },
-                            {
-                                title: "Nezbytné cookies",
-                                description:
-                                    "Tyto cookies jsou nutné pro základní fungování webu, přihlášení a uložení vaší consent volby.",
-                                linkedCategory: "necessary",
-                                cookieTable: {
-                                    headers: {
-                                        name: "Cookie",
-                                        description: "Účel",
-                                    },
-                                    body: [
-                                        {
-                                            name: COOKIE_CONSENT_NAME,
-                                            description:
-                                                "Uloží vaši volbu cookies pro tento web.",
-                                        },
-                                        {
-                                            name: "next-auth.session-token / __Secure-next-auth.session-token",
-                                            description:
-                                                "Drží přihlášenou relaci v administraci.",
-                                        },
-                                        {
-                                            name: "next-auth.csrf-token",
-                                            description:
-                                                "Chrání přihlašovací formulář a další citlivé akce proti zneužití.",
-                                        },
-                                    ],
-                                },
-                            },
-                            {
-                                title: "Volitelná analytika",
-                                description:
-                                    previewMode
-                                        ? "V tomhle lokálním preview není připojená žádná reálná analytická služba. Kategorie slouží jen pro ověření banneru a preference flow."
-                                        : "Tato kategorie zpřístupní služby pro měření návštěvnosti a chování uživatelů ve veřejné části webu.",
-                                linkedCategory: ANALYTICS_CATEGORY,
-                                cookieTable: {
-                                    headers: {
-                                        name: "Cookie",
-                                        description: "Účel",
-                                    },
-                                    body: [
-                                        {
-                                            name: "_ga*, _gid",
-                                            description:
-                                                "Google Analytics identifikátory pro agregované měření návštěvnosti.",
-                                        },
-                                        {
-                                            name: "_clck, _clsk",
-                                            description:
-                                                "Microsoft Clarity identifikátory pro session replay a heatmapy.",
-                                        },
-                                    ],
-                                },
-                            },
-                        ],
-                    },
-                },
-            },
-        },
-    };
-}
-
-type CookieConsentRuntimeProps = {
-    pathname: string;
+type StoredConsentRecord = {
+    analyticsAccepted: boolean;
+    revision: number;
+    savedAt: string;
 };
 
-function CookieConsentRuntime({ pathname }: CookieConsentRuntimeProps) {
-    const initStatusRef = useRef<"idle" | "pending" | "ready">("idle");
-    const isDevelopment = process.env.NODE_ENV !== "production";
-    const gtmEnabled = Boolean(process.env.NEXT_PUBLIC_GTM_ID?.trim());
-    const clarityEnabled = Boolean(
-        process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID?.trim(),
+function buildConsentSnapshot(
+    analyticsAccepted: boolean,
+    gtmEnabled: boolean,
+    clarityEnabled: boolean,
+): AnalyticsConsentSnapshot {
+    return {
+        initialized: true,
+        consentDefined: true,
+        analyticsAccepted,
+        gtmAccepted: analyticsAccepted && gtmEnabled,
+        clarityAccepted: analyticsAccepted && clarityEnabled,
+    };
+}
+
+function readCookieValue(name: string) {
+    if (typeof document === "undefined") {
+        return null;
+    }
+
+    const match = document.cookie.match(
+        new RegExp(`(?:^|; )${name.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&")}=([^;]*)`),
     );
-    const previewMode = isDevelopment && !gtmEnabled && !clarityEnabled;
 
-    useEffect(() => {
-        const hasOptionalAnalytics = gtmEnabled || clarityEnabled;
-        const shouldMountConsentUi = hasOptionalAnalytics || previewMode;
+    return match ? decodeURIComponent(match[1]) : null;
+}
 
-        if (!shouldMountConsentUi) {
-            return;
+function readStoredConsent(): StoredConsentRecord | null {
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    const sources = [
+        window.localStorage.getItem(COOKIE_CONSENT_NAME),
+        readCookieValue(COOKIE_CONSENT_NAME),
+    ];
+
+    for (const source of sources) {
+        if (!source) {
+            continue;
         }
 
-        if (!isPublicAnalyticsPath(pathname)) {
-            updateGoogleConsentMode(false);
-            updateClarityConsentMode(false);
-            return;
-        }
-
-        if (gtmEnabled) {
-            primeGoogleConsentModeDefaults();
-        }
-
-        const cookieConsentApi = window.__minecraftPortalCookieConsentApi;
-        if (cookieConsentApi) {
-            initStatusRef.current = "ready";
-            syncConsentState(cookieConsentApi);
-            return;
-        }
-
-        if (initStatusRef.current !== "idle") {
-            return;
-        }
-
-        let cancelled = false;
-        initStatusRef.current = "pending";
-
-        void (async () => {
-            try {
-                const cookieConsentModule = await import("vanilla-cookieconsent");
-                const CookieConsent =
-                    cookieConsentModule.default as unknown as CookieConsentApi;
-
-                if (cancelled) {
-                    return;
-                }
-
-                window.__minecraftPortalCookieConsentApi = CookieConsent;
-                await CookieConsent.run(
-                    buildConsentConfig(
-                        CookieConsent,
-                        gtmEnabled,
-                        clarityEnabled,
-                        previewMode,
-                    ),
-                );
-
-                if (cancelled) {
-                    return;
-                }
-
-                initStatusRef.current = "ready";
-                syncConsentState(CookieConsent);
-            } catch {
-                initStatusRef.current = "idle";
-                setConsentSnapshot({
-                    ...DEFAULT_ANALYTICS_CONSENT_SNAPSHOT,
-                    initialized: true,
-                });
+        try {
+            const parsed = JSON.parse(source) as Partial<StoredConsentRecord>;
+            if (
+                typeof parsed.analyticsAccepted === "boolean" &&
+                typeof parsed.revision === "number" &&
+                typeof parsed.savedAt === "string"
+            ) {
+                return {
+                    analyticsAccepted: parsed.analyticsAccepted,
+                    revision: parsed.revision,
+                    savedAt: parsed.savedAt,
+                };
             }
-        })();
-
-        return () => {
-            cancelled = true;
-            if (initStatusRef.current === "pending") {
-                initStatusRef.current = "idle";
-            }
-        };
-    }, [pathname, isDevelopment, gtmEnabled, clarityEnabled, previewMode]);
+        } catch {
+            continue;
+        }
+    }
 
     return null;
 }
 
+function clearStoredConsent() {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    window.localStorage.removeItem(COOKIE_CONSENT_NAME);
+    document.cookie = `${COOKIE_CONSENT_NAME}=; path=/; max-age=0; samesite=lax`;
+}
+
+function persistStoredConsent(record: StoredConsentRecord) {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    const serialized = JSON.stringify(record);
+    window.localStorage.setItem(COOKIE_CONSENT_NAME, serialized);
+    document.cookie = `${COOKIE_CONSENT_NAME}=${encodeURIComponent(
+        serialized,
+    )}; path=/; max-age=${COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
+}
+
 export function CookieConsentProvider() {
     const pathname = usePathname();
+    const [initialized, setInitialized] = useState(false);
+    const [consentDefined, setConsentDefined] = useState(false);
+    const [analyticsAccepted, setAnalyticsAccepted] = useState(false);
+    const [preferencesOpen, setPreferencesOpen] = useState(false);
+
+    const gtmId = getConfiguredGtmId();
+    const clarityProjectId = getConfiguredClarityProjectId();
+    const hasOptionalAnalytics = Boolean(gtmId || clarityProjectId);
+    const gtmEnabled = Boolean(gtmId);
+    const clarityEnabled = Boolean(clarityProjectId);
+    const publicPath = isPublicAnalyticsPath(pathname);
+
+    useEffect(() => {
+        const storedConsent = readStoredConsent();
+        const consentIsCurrent =
+            storedConsent?.revision === COOKIE_CONSENT_REVISION;
+
+        if (consentIsCurrent && storedConsent) {
+            const snapshot = buildConsentSnapshot(
+                storedConsent.analyticsAccepted,
+                gtmEnabled,
+                clarityEnabled,
+            );
+
+            setConsentSnapshot(snapshot);
+            setInitialized(true);
+            setConsentDefined(true);
+            setAnalyticsAccepted(storedConsent.analyticsAccepted);
+            updateGoogleConsentMode(snapshot.gtmAccepted && publicPath);
+            updateClarityConsentMode(snapshot.clarityAccepted && publicPath);
+            return;
+        }
+
+        if (storedConsent && !consentIsCurrent) {
+            clearStoredConsent();
+        }
+
+        setConsentSnapshot({
+            ...DEFAULT_ANALYTICS_CONSENT_SNAPSHOT,
+            initialized: true,
+        });
+        setInitialized(true);
+        setConsentDefined(false);
+        setAnalyticsAccepted(false);
+        updateGoogleConsentMode(false);
+        updateClarityConsentMode(false);
+    }, [publicPath, gtmEnabled, clarityEnabled]);
+
+    useEffect(() => {
+        return subscribeCookiePreferencesOpen(() => {
+            if (!hasOptionalAnalytics) {
+                return;
+            }
+
+            setPreferencesOpen(true);
+        });
+    }, [hasOptionalAnalytics, publicPath]);
+
+    function applyConsent(nextAnalyticsAccepted: boolean) {
+        const record: StoredConsentRecord = {
+            analyticsAccepted: nextAnalyticsAccepted,
+            revision: COOKIE_CONSENT_REVISION,
+            savedAt: new Date().toISOString(),
+        };
+        const snapshot = buildConsentSnapshot(
+            nextAnalyticsAccepted,
+            gtmEnabled,
+            clarityEnabled,
+        );
+
+        persistStoredConsent(record);
+        setConsentSnapshot(snapshot);
+        setInitialized(true);
+        setConsentDefined(true);
+        setAnalyticsAccepted(nextAnalyticsAccepted);
+        setPreferencesOpen(false);
+        updateGoogleConsentMode(snapshot.gtmAccepted && publicPath);
+        updateClarityConsentMode(snapshot.clarityAccepted && publicPath);
+    }
+
+    if (!initialized || !hasOptionalAnalytics) {
+        return null;
+    }
 
     return (
-        <CookieConsentRuntime
-            key={`${PROVIDER_INSTANCE_VERSION}:${pathname}`}
-            pathname={pathname}
-        />
+        <>
+            {!consentDefined ? (
+                <div className="cookie-banner" role="dialog" aria-modal="false">
+                    <div className="cookie-banner__copy">
+                        <p className="cookie-banner__eyebrow">Cookies</p>
+                        <h2>Zapnout Clarity a analytiku</h2>
+                        <p>
+                            Web funguje i bez volitelných cookies. Pokud je
+                            povolíte, zapne se Microsoft Clarity a případně další
+                            analytika na veřejných stránkách. Volbu můžete
+                            nastavit odkudkoli na webu.
+                        </p>
+                    </div>
+                    <div className="cookie-banner__actions">
+                        <button
+                            type="button"
+                            className="cookie-banner__secondary"
+                            onClick={() => applyConsent(false)}
+                        >
+                            Pouze nezbytné
+                        </button>
+                        <button
+                            type="button"
+                            className="cookie-banner__secondary"
+                            onClick={() => setPreferencesOpen(true)}
+                        >
+                            Nastavení
+                        </button>
+                        <button
+                            type="button"
+                            className="cookie-banner__primary"
+                            onClick={() => applyConsent(true)}
+                        >
+                            Povolit analytiku
+                        </button>
+                    </div>
+                </div>
+            ) : null}
+
+            {preferencesOpen ? (
+                <div className="cookie-modal-backdrop" role="presentation">
+                    <div
+                        className="cookie-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="cookie-modal-title"
+                    >
+                        <div className="cookie-modal__header">
+                            <div>
+                                <p className="cookie-banner__eyebrow">
+                                    Nastavení cookies
+                                </p>
+                                <h2 id="cookie-modal-title">
+                                    Volitelná analytika
+                                </h2>
+                            </div>
+                            <button
+                                type="button"
+                                className="cookie-modal__close"
+                                onClick={() => setPreferencesOpen(false)}
+                                aria-label="Zavřít nastavení cookies"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="cookie-modal__section">
+                            <div className="cookie-modal__row">
+                                <div>
+                                    <h3>Nezbytné cookies</h3>
+                                    <p>
+                                        Nutné pro přihlášení, bezpečnost a uložení
+                                        vaší volby cookies.
+                                    </p>
+                                </div>
+                                <span className="cookie-modal__badge">
+                                    Vždy aktivní
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="cookie-modal__section">
+                            <label className="cookie-modal__toggle">
+                                <div>
+                                    <h3>Microsoft Clarity a analytika</h3>
+                                    <p>
+                                        Zapne Clarity na veřejných stránkách a
+                                        další volitelné měření, pokud je v projektu
+                                        nastavené.
+                                    </p>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={analyticsAccepted}
+                                    onChange={(event) =>
+                                        setAnalyticsAccepted(event.target.checked)
+                                    }
+                                />
+                            </label>
+                        </div>
+
+                        <div className="cookie-modal__footer">
+                            <button
+                                type="button"
+                                className="cookie-banner__secondary"
+                                onClick={() => applyConsent(false)}
+                            >
+                                Pouze nezbytné
+                            </button>
+                            <button
+                                type="button"
+                                className="cookie-banner__primary"
+                                onClick={() => applyConsent(analyticsAccepted)}
+                            >
+                                Uložit volbu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {consentDefined ? (
+                <button
+                    type="button"
+                    className="cookie-preferences-button"
+                    onClick={openCookiePreferences}
+                >
+                    Nastavení cookies
+                </button>
+            ) : null}
+        </>
     );
 }

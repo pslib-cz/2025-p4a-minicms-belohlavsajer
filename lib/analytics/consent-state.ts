@@ -3,14 +3,13 @@ export const GTM_SERVICE = "google_tag_manager";
 export const CLARITY_SERVICE = "microsoft_clarity";
 
 const CONSENT_STATE_CHANGE_EVENT = "minecraft-portal:consent-state-change";
+const COOKIE_PREFERENCES_OPEN_EVENT = "minecraft-portal:open-cookie-preferences";
 
 type GtagFn = (...args: unknown[]) => void;
 
 export type ClarityFn = ((command: string, ...args: unknown[]) => void) & {
     q?: unknown[][];
 };
-
-export type CookieConsentApi = typeof import("vanilla-cookieconsent");
 
 export type AnalyticsConsentSnapshot = {
     initialized: boolean;
@@ -31,7 +30,6 @@ export const DEFAULT_ANALYTICS_CONSENT_SNAPSHOT: AnalyticsConsentSnapshot = {
 declare global {
     interface Window {
         __minecraftPortalConsentSnapshot?: AnalyticsConsentSnapshot;
-        __minecraftPortalCookieConsentApi?: CookieConsentApi;
         __minecraftPortalGoogleConsentDefaultsApplied?: boolean;
         dataLayer?: unknown[];
         gtag?: GtagFn;
@@ -86,17 +84,19 @@ export function openCookiePreferences() {
         return;
     }
 
-    const cookieConsentApi = window.__minecraftPortalCookieConsentApi;
-    if (!cookieConsentApi) {
-        return;
+    window.dispatchEvent(new Event(COOKIE_PREFERENCES_OPEN_EVENT));
+}
+
+export function subscribeCookiePreferencesOpen(listener: () => void) {
+    if (typeof window === "undefined") {
+        return () => undefined;
     }
 
-    if (cookieConsentApi.validConsent()) {
-        cookieConsentApi.showPreferences();
-        return;
-    }
+    window.addEventListener(COOKIE_PREFERENCES_OPEN_EVENT, listener);
 
-    cookieConsentApi.show(true);
+    return () => {
+        window.removeEventListener(COOKIE_PREFERENCES_OPEN_EVENT, listener);
+    };
 }
 
 export function primeGoogleConsentModeDefaults() {

@@ -583,70 +583,152 @@ a {
     min-height: 4.8rem;
 }
 
-#cc-main {
-    z-index: 1205;
-    --cc-font-family: var(--font-space-grotesk), "Segoe UI", sans-serif;
-    --cc-modal-border-radius: 0;
-    --cc-btn-border-radius: 0;
-    --cc-bg: #111111;
-    --cc-primary-color: #f4fbef;
-    --cc-secondary-color: #c2cfc0;
-    --cc-btn-primary-bg: var(--primary-color);
-    --cc-btn-primary-color: #ffffff;
-    --cc-btn-primary-border-color: var(--border-color);
-    --cc-btn-primary-hover-bg: var(--primary-color-hover);
-    --cc-btn-primary-hover-color: #ffffff;
-    --cc-btn-primary-hover-border-color: var(--border-color);
-    --cc-btn-secondary-bg: #1f1f21;
-    --cc-btn-secondary-color: #f4fbef;
-    --cc-btn-secondary-border-color: var(--border-color);
-    --cc-btn-secondary-hover-bg: #2b2b2d;
-    --cc-btn-secondary-hover-color: #ffffff;
-    --cc-btn-secondary-hover-border-color: var(--border-light);
-    --cc-separator-border-color: rgba(255, 255, 255, 0.08);
-    --cc-toggle-on-bg: var(--primary-color);
-    --cc-toggle-off-bg: #505456;
-    --cc-toggle-on-knob-bg: #ffffff;
-    --cc-toggle-off-knob-bg: #ffffff;
-    --cc-toggle-readonly-bg: #3a3a3c;
-    --cc-toggle-readonly-knob-bg: #ffffff;
-    --cc-section-category-border: rgba(255, 255, 255, 0.08);
-    --cc-cookie-category-block-bg: #18181a;
-    --cc-cookie-category-block-border: rgba(255, 255, 255, 0.08);
-    --cc-cookie-category-block-hover-bg: #222224;
-    --cc-cookie-category-block-hover-border: rgba(255, 255, 255, 0.16);
-    --cc-cookie-category-expanded-block-hover-bg: rgba(255, 255, 255, 0.08);
-    --cc-footer-bg: #0d0d0e;
-    --cc-footer-color: #c2cfc0;
-    --cc-footer-border-color: rgba(255, 255, 255, 0.08);
-    --cc-overlay-bg: rgba(0, 0, 0, 0.72);
-}
-
-#cc-main .cm,
-#cc-main .pm {
+.cookie-banner,
+.cookie-modal {
     border: 2px solid var(--border-color);
+    background: rgba(17, 17, 17, 0.98);
+    color: #f4fbef;
     box-shadow: var(--shadow-strong);
 }
 
-#cc-main .cm__title,
-#cc-main .pm__title,
-#cc-main .pm__section-title {
+.cookie-banner {
+    position: fixed;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1205;
+    display: grid;
+    gap: 1rem;
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 1.1rem 1.2rem;
+}
+
+.cookie-banner__copy h2,
+.cookie-modal h2,
+.cookie-modal h3 {
+    margin: 0;
     font-family: var(--font-pixelify-sans), monospace;
     letter-spacing: 0.02em;
 }
 
-#cc-main .cm__btn,
-#cc-main .pm__btn,
-#cc-main .pm__close-btn {
-    border-width: 2px;
+.cookie-banner__copy p,
+.cookie-modal p {
+    margin: 0;
+    line-height: 1.55;
+    color: #d7e4d2;
+}
+
+.cookie-banner__eyebrow {
+    color: #93c97b !important;
+    font-size: 0.78rem;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
-#cc-main .pm__badge,
-#cc-main .pm__service-counter {
-    border-radius: 0;
+.cookie-banner__actions,
+.cookie-modal__footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.cookie-banner__primary,
+.cookie-banner__secondary,
+.cookie-modal__close {
+    border: 2px solid var(--border-color);
+    padding: 0.72rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition:
+        transform 140ms ease,
+        background 140ms ease,
+        border-color 140ms ease;
+}
+
+.cookie-banner__primary {
+    background: var(--primary-color);
+    color: #ffffff;
+}
+
+.cookie-banner__secondary,
+.cookie-modal__close {
+    background: #1f1f21;
+    color: #f4fbef;
+}
+
+.cookie-banner__primary:hover,
+.cookie-banner__primary:focus-visible,
+.cookie-banner__secondary:hover,
+.cookie-banner__secondary:focus-visible,
+.cookie-modal__close:hover,
+.cookie-modal__close:focus-visible,
+.cookie-preferences-button:hover,
+.cookie-preferences-button:focus-visible {
+    transform: translateY(-1px);
+    border-color: var(--accent-link);
+}
+
+.cookie-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1207;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.74);
+}
+
+.cookie-modal {
+    width: min(100%, 42rem);
+    padding: 1.25rem;
+}
+
+.cookie-modal__header,
+.cookie-modal__row,
+.cookie-modal__toggle {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.cookie-modal__header {
+    margin-bottom: 1rem;
+}
+
+.cookie-modal__close {
+    min-width: 3rem;
+    line-height: 1;
+}
+
+.cookie-modal__section + .cookie-modal__section {
+    margin-top: 1rem;
+}
+
+.cookie-modal__section {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 1rem;
+}
+
+.cookie-modal__badge {
+    border: 2px solid var(--border-color);
+    padding: 0.35rem 0.55rem;
+    background: #26282a;
+    color: #d7e4d2;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.cookie-modal__toggle input {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-top: 0.25rem;
+    accent-color: var(--primary-color);
 }
 
 .cookie-preferences-button {
@@ -668,13 +750,7 @@ a {
         transform 140ms ease,
         background 140ms ease,
         border-color 140ms ease;
-}
-
-.cookie-preferences-button:hover,
-.cookie-preferences-button:focus-visible {
-    transform: translateY(-1px);
-    background: #1d1d1f;
-    border-color: var(--accent-link);
+    background: rgba(17, 17, 17, 0.96);
 }
 
 .guide-meta-row,
@@ -1368,6 +1444,36 @@ a {
     padding: 0.85rem;
     background: rgba(6, 10, 8, 0.92);
     overflow-x: auto;
+}
+
+@media (max-width: 767.98px) {
+    .cookie-banner {
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: 0.75rem;
+        padding: 1rem;
+    }
+
+    .cookie-banner__actions,
+    .cookie-modal__header,
+    .cookie-modal__row,
+    .cookie-modal__toggle,
+    .cookie-modal__footer {
+        flex-direction: column;
+    }
+
+    .cookie-banner__primary,
+    .cookie-banner__secondary,
+    .cookie-modal__close,
+    .cookie-preferences-button {
+        width: 100%;
+    }
+
+    .cookie-preferences-button {
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: 0.75rem;
+    }
 }
 
 @media (max-width: 1199.98px) {

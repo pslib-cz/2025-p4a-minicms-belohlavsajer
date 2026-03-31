@@ -3,11 +3,9 @@ import { Pixelify_Sans, Space_Grotesk } from "next/font/google";
 import Link from "next/link";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "minecraft-react-ui/dist/esm/minecraft-react-ui.css";
-import "vanilla-cookieconsent/dist/cookieconsent.css";
 /* Force Next.js HMR reload for CSS changes */
 import { ClarityProvider } from "@/components/analytics/clarity-provider";
 import { CookieConsentProvider } from "@/components/analytics/cookie-consent-provider";
-import { CookiePreferencesButton } from "@/components/analytics/cookie-preferences-button";
 import { GoogleTagManagerProvider } from "@/components/analytics/google-tag-manager-provider";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
@@ -69,7 +67,6 @@ export default function RootLayout({
                 <CookieConsentProvider />
                 <ClarityProvider />
                 <GoogleTagManagerProvider />
-                <CookiePreferencesButton />
                 <header className="app-header">
                     <nav className="container py-3 d-flex justify-content-between align-items-center gap-3 flex-wrap">
                         <Link

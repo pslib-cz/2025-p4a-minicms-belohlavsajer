@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 import { useAnalyticsConsent } from "@/components/analytics/use-analytics-consent";
+import { getConfiguredClarityProjectId } from "@/lib/analytics/config";
 import {
     updateClarityConsentMode,
     type ClarityFn,
@@ -35,24 +36,30 @@ function injectClarity(projectId: string) {
 
     const script = document.createElement("script");
     script.id = CLARITY_SCRIPT_ID;
+    script.type = "text/javascript";
     script.async = true;
     script.src = `https://www.clarity.ms/tag/${projectId}`;
 
-    document.head.appendChild(script);
+    const firstScript = document.getElementsByTagName("script")[0];
+    firstScript?.parentNode?.insertBefore(script, firstScript);
+    if (!firstScript?.parentNode) {
+        document.head.appendChild(script);
+    }
+
     window.__clarityProjectId = projectId;
 }
 
 export function ClarityProvider() {
     const pathname = usePathname();
     const { clarityAccepted } = useAnalyticsConsent();
-    const projectId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID?.trim();
+    const projectId = getConfiguredClarityProjectId();
 
     useEffect(() => {
         if (!projectId) {
             return;
         }
 
-        if (!clarityAccepted || !isPublicAnalyticsPath(pathname)) {
+        if (!isPublicAnalyticsPath(pathname)) {
             updateClarityConsentMode(false);
             return;
         }
@@ -61,7 +68,7 @@ export function ClarityProvider() {
             injectClarity(projectId);
         }
 
-        updateClarityConsentMode(true);
+        updateClarityConsentMode(clarityAccepted);
     }, [pathname, projectId, clarityAccepted]);
 
     return null;
