@@ -22,6 +22,10 @@ export const metadata: Metadata = {
     alternates: {
         canonical: "/",
     },
+    other: {
+        "google-site-verification":
+            "SRC0SGMkE5Lp-FKK_18ytX3pAVfo_rbTJD2gvDW-zvE",
+    },
     openGraph: {
         title: "Minecraft Portal",
         description:
